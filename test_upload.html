@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDF 업로드 테스트</title>
+</head>
+<body>
+  <h2>📄 PDF 업로드 → 레퍼런스 추출</h2>
+  <form id="uploadForm">
+    <input type="file" id="pdf" name="pdf" accept="application/pdf" required />
+    <button type="submit">업로드</button>
+  </form>
+
+  <h3>📚 추출된 레퍼런스 목록:</h3>
+  <ul id="refs"></ul>
+
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append("pdf", document.getElementById("pdf").files[0]);
+
+      const res = await fetch("http://localhost:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      const refList = document.getElementById("refs");
+      refList.innerHTML = "";
+      data.references.forEach((r) => {
+        const li = document.createElement("li");
+        li.textContent = r;
+        refList.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>

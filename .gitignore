@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# 가상환경
+venv/
+
+# 모델 및 바이너리
+*.pt
+*.ckpt
+*.onnx
+*.h5
+*.dylib
+*.so
+*.safetensors
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Mac OS
+.DS_Store
+
+# 기타
+.env
