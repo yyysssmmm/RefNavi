@@ -42,7 +42,7 @@
 .content-card {
   background: white;
   border-radius: clamp(12px, 2vw, 20px);
-  padding: 4vw 4vw;
+  padding: 2vw 2vw;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
   display: flex;

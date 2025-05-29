@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={inter.className}>
         <main className="min-h-screen p-8">
-          {children}
+        {children}
         </main>
       </body>
     </html>

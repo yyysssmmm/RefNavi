@@ -57,6 +57,21 @@ export default function AnalysisPage() {
     router.push('/');
   };
 
+  // 인용 번호 클릭 핸들러
+  const handleCitationClick = (citationNumber: number) => {
+    // analysisResult.references에서 해당 인용 번호와 매칭되는 논문 찾기
+    const reference = analysisResult.references.find(ref => 
+      ref.id === citationNumber || ref.id.toString() === citationNumber.toString()
+    );
+    if (reference) {
+      setSelectedReference(reference);
+      // 참고문헌 목록이 보이지 않는다면 PDF 모드로 유지하되, 하단에 선택된 논문 정보 표시
+      console.log(`인용 번호 ${citationNumber} 클릭됨:`, reference.title);
+    } else {
+      console.log(`인용 번호 ${citationNumber}에 해당하는 논문을 찾을 수 없습니다.`);
+    }
+  };
+
   const renderRightContent = () => {
     switch (viewMode) {
       case 'references':
@@ -84,60 +99,174 @@ export default function AnalysisPage() {
 
       case 'pdf':
         return (
-          <div className="content-card" style={{ padding: 0 }}>
-            <div style={{ 
-              flex: 1,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%'
-            }}>
-              <PDFViewer
-                pdfFile={currentPDF}
-                isVisible={true}
-              />
-              
-              {selectedReference && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: 'clamp(1rem, 2vh, 1.5rem)',
-                  left: 'clamp(1rem, 2vw, 1.5rem)',
-                  right: 'clamp(1rem, 2vw, 1.5rem)',
-                  padding: 'clamp(1rem, 2vh, 1.5rem)',
-                  background: 'rgba(238, 242, 255, 0.95)',
-                  backdropFilter: 'blur(8px)',
-                  borderRadius: 'clamp(8px, 1vw, 12px)',
-                  border: '1px solid #4f46e5',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                  zIndex: 10
-                }}>
-                  <h4 style={{
-                    fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
-                    fontWeight: 600,
-                    color: '#4f46e5',
-                    margin: '0 0 clamp(0.5rem, 1vh, 0.75rem) 0'
-                  }}>
-                    선택된 참고문헌
-                  </h4>
-                  <p style={{
-                    fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
-                    color: '#1e293b',
-                    margin: 0,
-                    lineHeight: 1.4
-                  }}>
-                    {selectedReference.title}
-                  </p>
-                  <p style={{
-                    fontSize: 'clamp(0.7rem, 1.4vw, 0.8rem)',
-                    color: '#64748b',
-                    margin: 'clamp(0.25rem, 0.5vh, 0.5rem) 0 0 0'
-                  }}>
-                    {selectedReference.authors.join(', ')} • {selectedReference.year}
-                  </p>
-                </div>
-              )}
+          <>
+            {/* 가운데: PDF 뷰어 */}
+            <div className="content-card" style={{ padding: 0 , maxWidth: '100%'}}>
+              <div style={{ 
+                flex: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%'
+              }}>
+                <PDFViewer
+                  pdfFile={currentPDF}
+                  isVisible={true}
+                  onCitationClick={handleCitationClick}
+                />
+              </div>
             </div>
-          </div>
+
+            {/* 오른쪽: 선택된 논문 카드 */}
+            <div className="content-card">
+              <div className="card-header">
+                <Search className="card-icon" />
+                <h2 className="card-title">논문 정보</h2>
+              </div>
+              
+              <div style={{ 
+                flex: 1,
+                overflow: 'auto',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {selectedReference ? (
+                  <div style={{
+                    padding: 'clamp(1rem, 2vh, 1.5rem)',
+                    background: '#f8fafc',
+                    borderRadius: 'clamp(8px, 1vw, 12px)',
+                    border: '2px solid #4f46e5'
+                  }}>
+                    <div style={{
+                      marginBottom: 'clamp(1rem, 2vh, 1.5rem)',
+                      padding: 'clamp(0.5rem, 1vh, 0.75rem)',
+                      background: '#4f46e5',
+                      color: 'white',
+                      borderRadius: 'clamp(6px, 1vw, 8px)',
+                      textAlign: 'center',
+                      fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                      fontWeight: 600
+                    }}>
+                      📄 인용 번호 [{selectedReference.id}]
+                    </div>
+
+                    <h3 style={{
+                      fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      margin: '0 0 clamp(0.75rem, 1.5vh, 1rem) 0',
+                      lineHeight: 1.3
+                    }}>
+                      {selectedReference.title}
+                    </h3>
+                    
+                    <div style={{
+                      marginBottom: 'clamp(1rem, 2vh, 1.5rem)'
+                    }}>
+                      <p style={{
+                        fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                        color: '#475569',
+                        margin: '0 0 clamp(0.5rem, 1vh, 0.75rem) 0',
+                        fontWeight: 500
+                      }}>
+                        👥 {selectedReference.authors.join(', ')}
+                      </p>
+                      
+                      <div style={{
+                        display: 'flex',
+                        gap: 'clamp(1rem, 2vw, 1.5rem)',
+                        flexWrap: 'wrap',
+                        fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
+                        color: '#64748b'
+                      }}>
+                        <span>📅 {selectedReference.year}</span>
+                        <span>📖 {selectedReference.venue}</span>
+                        <span>📊 {selectedReference.citationCount.toLocaleString()}회 인용</span>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      background: 'white',
+                      padding: 'clamp(1rem, 2vh, 1.5rem)',
+                      borderRadius: 'clamp(6px, 1vw, 8px)',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <h4 style={{
+                        fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                        fontWeight: 600,
+                        color: '#374151',
+                        margin: '0 0 clamp(0.5rem, 1vh, 0.75rem) 0'
+                      }}>
+                        📝 초록
+                      </h4>
+                      <p style={{
+                        fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
+                        color: '#4b5563',
+                        lineHeight: 1.6,
+                        margin: 0
+                      }}>
+                        {selectedReference.abstract}
+                      </p>
+                    </div>
+
+                    <div style={{
+                      marginTop: 'clamp(1rem, 2vh, 1.5rem)',
+                      textAlign: 'center'
+                    }}>
+                      <button 
+                        onClick={() => setSelectedReference(null)}
+                        style={{
+                          padding: 'clamp(0.5rem, 1vh, 0.75rem) clamp(1rem, 2vw, 1.5rem)',
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 'clamp(6px, 1vw, 8px)',
+                          fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
+                          cursor: 'pointer',
+                          fontWeight: 500
+                        }}
+                      >
+                        닫기
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    color: '#94a3b8',
+                    fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                    padding: 'clamp(2rem, 5vh, 4rem)'
+                  }}>
+                    <div>
+                      <div style={{ 
+                        fontSize: 'clamp(2rem, 5vw, 3rem)',
+                        marginBottom: 'clamp(1rem, 2vh, 1.5rem)'
+                      }}>
+                        🎯
+                      </div>
+                      <h3 style={{
+                        fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
+                        fontWeight: 600,
+                        color: '#64748b',
+                        margin: '0 0 clamp(0.5rem, 1vh, 1rem) 0'
+                      }}>
+                        인용 번호를 클릭하세요
+                      </h3>
+                      <p style={{ margin: 0, lineHeight: 1.5 }}>
+                        PDF에서 파란색 인용 번호<br />
+                        <strong>[1], [2], [3]</strong>을 클릭하면<br />
+                        여기에 논문 정보가 나타납니다.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         );
 
       default:
@@ -228,10 +357,10 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* 메인 콘텐츠 - 2열 레이아웃 */}
+      {/* 메인 콘텐츠 - 3단 레이아웃 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '180px 1fr',
+        gridTemplateColumns: viewMode === 'pdf' ? '180px 2fr 3fr' : '180px 1fr',
         gap: 'clamp(1.5rem, 3vw, 2rem)',
         maxWidth: 'min(98vw, 1600px)',
         margin: '0 auto',
