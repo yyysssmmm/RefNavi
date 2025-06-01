@@ -1,0 +1,270 @@
+{
+  "title": "Attention Is All You Need",
+  "summary": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train.",
+  "references": [
+    {
+      "ref_number": "[1]",
+      "ref_title": "Layer normalization",
+      "citation_contexts": [
+        "Weemployaresidualconnection[10]aroundeachof\nthe two sub-layers, followed by layer normalization [1].",
+        "9\nReferences\n[1] JimmyLeiBa,JamieRyanKiros,andGeoffreyEHinton."
+      ]
+    },
+    {
+      "ref_number": "[2]",
+      "ref_title": "Neural machine translation by jointly learning to align and translate",
+      "citation_contexts": [
+        "Wecompute\nthematrixofoutputsas:\nQKT\nAttention(Q,K,V)=softmax( √ )V (1)\nd\nk\nThetwomostcommonlyusedattentionfunctionsareadditiveattention[2],anddot-product(multi-\nplicative)attention.",
+        "[2] DzmitryBahdanau,KyunghyunCho,andYoshuaBengio."
+      ]
+    },
+    {
+      "ref_number": "[3]",
+      "ref_title": "Massive exploration of neural machine translation architectures",
+      "citation_contexts": [
+        "Whileforsmallvaluesofd thetwomechanismsperformsimilarly,additiveattentionoutperforms\nk\ndotproductattentionwithoutscalingforlargervaluesofd [3].",
+        "Sentenceswereencodedusingbyte-pairencoding[3],whichhasasharedsource-\ntargetvocabularyofabout37000tokens.",
+        "[3] DennyBritz,AnnaGoldie,Minh-ThangLuong,andQuocV.Le."
+      ]
+    },
+    {
+      "ref_number": "[4]",
+      "ref_title": "Long short-term memory-networks for machine reading",
+      "citation_contexts": [
+        "[4] JianpengCheng,LiDong,andMirellaLapata."
+      ]
+    },
+    {
+      "ref_number": "[5]",
+      "ref_title": "Learning phrase representations using rnn encoder-decoder for statistical machine translation",
+      "citation_contexts": [
+        "[5] KyunghyunCho,BartvanMerrienboer,CaglarGulcehre,FethiBougares,HolgerSchwenk,\nandYoshuaBengio."
+      ]
+    },
+    {
+      "ref_number": "[6]",
+      "ref_title": "Xception: Deep learning with depthwise separable convolutions",
+      "citation_contexts": [
+        "Separable convolutions [6], however, decrease the complexity\nconsiderably, toO(k·n·d+n·d2).",
+        "[6] Francois Chollet."
+      ]
+    },
+    {
+      "ref_number": "[7]",
+      "ref_title": "Empirical evaluation of gated recurrent neural networks on sequence modeling",
+      "citation_contexts": [
+        "1 Introduction\nRecurrentneuralnetworks,longshort-termmemory[12]andgatedrecurrent[7]neuralnetworks\ninparticular,havebeenfirmlyestablishedasstateoftheartapproachesinsequencemodelingand\ntransductionproblemssuchaslanguagemodelingandmachinetranslation[29,2,5].",
+        "[7] JunyoungChung,ÇaglarGülçehre,KyunghyunCho,andYoshuaBengio."
+      ]
+    },
+    {
+      "ref_number": "[8]",
+      "ref_title": "Convolutional sequence to sequence learning",
+      "citation_contexts": [
+        "2 Background\nThegoalofreducingsequentialcomputationalsoformsthefoundationoftheExtendedNeuralGPU\n[20],ByteNet[15]andConvS2S[8],allofwhichuseconvolutionalneuralnetworksasbasicbuilding\nblock,computinghiddenrepresentationsinparallelforallinputandoutputpositions.Inthesemodels,\nthenumberofoperationsrequiredtorelatesignalsfromtwoarbitraryinputoroutputpositionsgrows\ninthedistancebetweenpositions,linearlyforConvS2SandlogarithmicallyforByteNet.",
+        "Inthefollowingsections,wewilldescribetheTransformer,motivate\nself-attentionanddiscussitsadvantagesovermodelssuchas[14,15]and[8].",
+        "Therearemanychoicesofpositionalencodings,\nlearnedandfixed[8].",
+        "pos\nWealsoexperimentedwithusinglearnedpositionalembeddings[8]instead,andfoundthatthetwo\nversionsproducednearlyidenticalresults(seeTable3row(E)).Wechosethesinusoidalversion\nbecauseitmayallowthemodeltoextrapolatetosequencelengthslongerthantheonesencountered\nduringtraining.",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "Wefurtherobserveinrows(C)and(D)that,asexpected,\nbiggermodelsarebetter,anddropoutisveryhelpfulinavoidingover-fitting.Inrow(E)wereplaceour\nsinusoidalpositionalencodingwithlearnedpositionalembeddings[8],andobservenearlyidentical\nresultstothebasemodel.",
+        "[8] JonasGehring,MichaelAuli,DavidGrangier,DenisYarats,andYannN.Dauphin."
+      ]
+    },
+    {
+      "ref_number": "[9]",
+      "ref_title": "Generating sequences with recurrent neural networks",
+      "citation_contexts": [
+        "Ateachstepthemodelisauto-regressive\n1 m\n[9],consumingthepreviouslygeneratedsymbolsasadditionalinputwhengeneratingthenext.",
+        "[9] Alex Graves."
+      ]
+    },
+    {
+      "ref_number": "[10]",
+      "ref_title": "Deep residual learning for image recognition",
+      "citation_contexts": [
+        "Weemployaresidualconnection[10]aroundeachof\nthe two sub-layers, followed by layer normalization [1].",
+        "[10] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun."
+      ]
+    },
+    {
+      "ref_number": "[11]",
+      "ref_title": "Gradient flow in recurrent nets: the difficulty of learning long-term dependencies",
+      "citation_contexts": [
+        "Thismakes\nit more difficult to learn dependencies between distant positions [11].",
+        "Theshorterthesepathsbetweenanycombinationofpositionsintheinput\nandoutputsequences,theeasieritistolearnlong-rangedependencies[11].",
+        "[11] SeppHochreiter,YoshuaBengio,PaoloFrasconi,andJürgenSchmidhuber."
+      ]
+    },
+    {
+      "ref_number": "[12]",
+      "ref_title": "Long short-term memory",
+      "citation_contexts": [
+        "1 Introduction\nRecurrentneuralnetworks,longshort-termmemory[12]andgatedrecurrent[7]neuralnetworks\ninparticular,havebeenfirmlyestablishedasstateoftheartapproachesinsequencemodelingand\ntransductionproblemssuchaslanguagemodelingandmachinetranslation[29,2,5].",
+        "[12] Sepp Hochreiter and Jürgen Schmidhuber."
+      ]
+    },
+    {
+      "ref_number": "[13]",
+      "ref_title": "Exploring the limits of language modeling",
+      "citation_contexts": [
+        "[13] RafalJozefowicz,OriolVinyals,MikeSchuster,NoamShazeer,andYonghuiWu."
+      ]
+    },
+    {
+      "ref_number": "[14]",
+      "ref_title": "Neural GPUs learn algorithms",
+      "citation_contexts": [
+        "[14] ŁukaszKaiserandIlyaSutskever."
+      ]
+    },
+    {
+      "ref_number": "[15]",
+      "ref_title": "Neural machine translation in linear time",
+      "citation_contexts": [
+        "2 Background\nThegoalofreducingsequentialcomputationalsoformsthefoundationoftheExtendedNeuralGPU\n[20],ByteNet[15]andConvS2S[8],allofwhichuseconvolutionalneuralnetworksasbasicbuilding\nblock,computinghiddenrepresentationsinparallelforallinputandoutputpositions.Inthesemodels,\nthenumberofoperationsrequiredtorelatesignalsfromtwoarbitraryinputoroutputpositionsgrows\ninthedistancebetweenpositions,linearlyforConvS2SandlogarithmicallyforByteNet.",
+        "DoingsorequiresastackofO(n/k)convolutionallayersinthecaseofcontiguouskernels,\norO(log (n))inthecaseofdilatedconvolutions[15], increasingthelengthofthelongestpaths\nk\nbetweenanytwopositionsinthenetwork.",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "[15] NalKalchbrenner,LasseEspeholt,KarenSimonyan,AaronvandenOord,AlexGraves,andKo-\nrayKavukcuoglu.Neuralmachinetranslationinlineartime.arXivpreprintarXiv:1610.10099v2,\n2017."
+      ]
+    },
+    {
+      "ref_number": "[16]",
+      "ref_title": "Structured attention networks",
+      "citation_contexts": [
+        "[16] YoonKim,CarlDenton,LuongHoang,andAlexanderM.Rush."
+      ]
+    },
+    {
+      "ref_number": "[17]",
+      "ref_title": "Adam: A method for stochastic optimization",
+      "citation_contexts": [
+        "5.3 Optimizer\nWeusedtheAdamoptimizer[17]withβ =0.9,β =0.98and(cid:15)=10−9.",
+        "[17] DiederikKingmaandJimmyBa."
+      ]
+    },
+    {
+      "ref_number": "[18]",
+      "ref_title": "Factorization tricks for LSTM networks",
+      "citation_contexts": [
+        "Recentworkhasachieved\nsignificantimprovementsincomputationalefficiencythroughfactorizationtricks[18]andconditional\ncomputation[26],whilealsoimprovingmodelperformanceincaseofthelatter.",
+        "[18] OleksiiKuchaievandBorisGinsburg."
+      ]
+    },
+    {
+      "ref_number": "[19]",
+      "ref_title": "A structured self-attentive sentence embedding",
+      "citation_contexts": [
+        "[19] Zhouhan Lin, Minwei Feng, Cicero Nogueira dos Santos, Mo Yu, Bing Xiang, Bowen\nZhou, and Yoshua Bengio."
+      ]
+    },
+    {
+      "ref_number": "[20]",
+      "ref_title": "Can active memory replace attention?",
+      "citation_contexts": [
+        "2 Background\nThegoalofreducingsequentialcomputationalsoformsthefoundationoftheExtendedNeuralGPU\n[20],ByteNet[15]andConvS2S[8],allofwhichuseconvolutionalneuralnetworksasbasicbuilding\nblock,computinghiddenrepresentationsinparallelforallinputandoutputpositions.Inthesemodels,\nthenumberofoperationsrequiredtorelatesignalsfromtwoarbitraryinputoroutputpositionsgrows\ninthedistancebetweenpositions,linearlyforConvS2SandlogarithmicallyforByteNet.",
+        "[20] SamyBengioŁukaszKaiser."
+      ]
+    },
+    {
+      "ref_number": "[21]",
+      "ref_title": "Effective approaches to attention-based neural machine translation",
+      "citation_contexts": [
+        "10\n[21] Minh-ThangLuong,HieuPham,andChristopherDManning."
+      ]
+    },
+    {
+      "ref_number": "[22]",
+      "ref_title": "A decomposable attention model",
+      "citation_contexts": [
+        "Inallbutafewcases[22],however,suchattentionmechanisms\nareusedinconjunctionwitharecurrentnetwork.",
+        "[22] AnkurParikh,OscarTäckström,DipanjanDas,andJakobUszkoreit."
+      ]
+    },
+    {
+      "ref_number": "[23]",
+      "ref_title": "A deep reinforced model for abstractive summarization",
+      "citation_contexts": [
+        "[23] RomainPaulus,CaimingXiong,andRichardSocher."
+      ]
+    },
+    {
+      "ref_number": "[24]",
+      "ref_title": "Using the output embedding to improve language models",
+      "citation_contexts": [
+        "In\nourmodel,wesharethesameweightmatrixbetweenthetwoembeddinglayersandthepre-√softmax\nlineartransformation,similarto[24].",
+        "[24] OfirPressandLiorWolf."
+      ]
+    },
+    {
+      "ref_number": "[25]",
+      "ref_title": "Neural machine translation of rare words with subword units",
+      "citation_contexts": [
+        "In terms of\ncomputationalcomplexity,self-attentionlayersarefasterthanrecurrentlayerswhenthesequence\nlength n is smaller than the representation dimensionality d, which is most often the case with\nsentencerepresentationsusedbystate-of-the-artmodelsinmachinetranslations,suchasword-piece\n[31]andbyte-pair[25]representations.",
+        "[25] RicoSennrich,BarryHaddow,andAlexandraBirch."
+      ]
+    },
+    {
+      "ref_number": "[26]",
+      "ref_title": "Outrageously large neural networks: The sparsely-gated mixture-of-experts layer",
+      "citation_contexts": [
+        "Recentworkhasachieved\nsignificantimprovementsincomputationalefficiencythroughfactorizationtricks[18]andconditional\ncomputation[26],whilealsoimprovingmodelperformanceincaseofthelatter.",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "[26] NoamShazeer,AzaliaMirhoseini,KrzysztofMaziarz,AndyDavis,QuocLe,GeoffreyHinton,\nandJeffDean."
+      ]
+    },
+    {
+      "ref_number": "[27]",
+      "ref_title": "Dropout: a simple way to prevent neural networks from overfitting",
+      "citation_contexts": [
+        "5.4 Regularization\nWeemploythreetypesofregularizationduringtraining:\nResidualDropout Weapplydropout[27]totheoutputofeachsub-layer,beforeitisaddedtothe\nsub-layerinputandnormalized.",
+        "[27] NitishSrivastava,GeoffreyEHinton,AlexKrizhevsky,IlyaSutskever,andRuslanSalakhutdi-\nnov."
+      ]
+    },
+    {
+      "ref_number": "[28]",
+      "ref_title": "End-to-end memory networks",
+      "citation_contexts": [
+        "End-to-endmemorynetworksarebasedonarecurrentattentionmechanisminsteadofsequence-\nalignedrecurrenceandhavebeenshowntoperformwellonsimple-languagequestionansweringand\nlanguagemodelingtasks[28].",
+        "[28] Sainbayar Sukhbaatar, arthur szlam, Jason Weston, and Rob Fergus."
+      ]
+    },
+    {
+      "ref_number": "[29]",
+      "ref_title": "Sequence to sequence learning with neural networks",
+      "citation_contexts": [
+        "[29] IlyaSutskever,OriolVinyals,andQuocVVLe."
+      ]
+    },
+    {
+      "ref_number": "[30]",
+      "ref_title": "Rethinking the inception architecture for computer vision",
+      "citation_contexts": [
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "[30] ChristianSzegedy,VincentVanhoucke,SergeyIoffe,JonathonShlens,andZbigniewWojna."
+      ]
+    },
+    {
+      "ref_number": "[31]",
+      "ref_title": "Google’s neural machine translation system: Bridging the gap between human and machine translation",
+      "citation_contexts": [
+        "In terms of\ncomputationalcomplexity,self-attentionlayersarefasterthanrecurrentlayerswhenthesequence\nlength n is smaller than the representation dimensionality d, which is most often the case with\nsentencerepresentationsusedbystate-of-the-artmodelsinmachinetranslations,suchasword-piece\n[31]andbyte-pair[25]representations.",
+        "ForEnglish-French,weusedthesignificantlylargerWMT\n2014English-Frenchdatasetconsistingof36Msentencesandsplittokensintoa32000word-piece\nvocabulary[31].Sentencepairswerebatchedtogetherbyapproximatesequencelength.Eachtraining\nbatchcontainedasetofsentencepairscontainingapproximately25000sourcetokensand25000\ntargettokens.",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "We\nusedbeamsearchwithabeamsizeof4andlengthpenaltyα = 0.6[31].",
+        "Wesetthemaximumoutputlengthduring\ninferencetoinputlength+50,butterminateearlywhenpossible[31].",
+        "[31] Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V Le, Mohammad Norouzi, Wolfgang\nMacherey,MaximKrikun,YuanCao,QinGao,KlausMacherey,etal."
+      ]
+    },
+    {
+      "ref_number": "[32]",
+      "ref_title": "Deep recurrent models with fast-forward connections for neural machine translation",
+      "citation_contexts": [
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "BLEU TrainingCost(FLOPs)\nModel\nEN-DE EN-FR EN-DE EN-FR\nByteNet[15] 23.75\nDeep-Att+PosUnk[32] 39.2 1.0·1020\nGNMT+RL[31] 24.6 39.92 2.3·1019 1.4·1020\nConvS2S[8] 25.16 40.46 9.6·1018 1.5·1020\nMoE[26] 26.03 40.56 2.0·1019 1.2·1020\nDeep-Att+PosUnkEnsemble[32] 40.4 8.0·1020\nGNMT+RLEnsemble[31] 26.30 41.16 1.8·1020 1.1·1021\nConvS2SEnsemble[8] 26.36 41.29 7.7·1019 1.2·1021\nTransformer(basemodel) 27.3 38.1 3.3·1018\nTransformer(big) 28.4 41.0 2.3·1019\nLabelSmoothing Duringtraining,weemployedlabelsmoothingofvalue(cid:15) = 0.1[30].",
+        "[32] Jie Zhou, Ying Cao, Xuguang Wang, Peng Li, and Wei Xu."
+      ]
+    }
+  ]
+}

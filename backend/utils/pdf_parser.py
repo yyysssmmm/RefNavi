@@ -1,93 +1,137 @@
 import os
-import pdfplumber
+import re
 import json
-from typing import List, Dict
+import pdfplumber
+from typing import Dict
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# 🔐 Load OpenAI API key from .env
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 if not OPENAI_API_KEY:
-    raise ValueError("❌ OPENAI_API_KEY가 .env에서 불러와지지 않았습니다!")
+    raise ValueError("OPENAI_API_KEY missing in .env")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-
-def extract_title_and_references_via_llm(pdf_path: str, model_name="gpt-4") -> Dict[str, object]:
+def extract_text_from_pdf(pdf_path: str) -> str:
     full_text = ""
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             text = page.extract_text()
             if text:
                 full_text += text + "\n"
+    return full_text
 
+def extract_reference_section(text: str) -> str:
+    lower = text.lower()
+    idx = lower.find("references")
+    return text[idx:] if idx != -1 else ""
+
+def extract_citation_contexts(text: str) -> Dict[str, list]:
+    """
+    본문에서 [1], [2], ... 등의 인용 번호가 언급된 문장들을 추출.
+    """
+    citation_contexts = dict()
+    sentences = re.split(r'(?<=[.?!])\s+', text)
+    for sent in sentences:
+        matches = re.findall(r'\[(\d{1,3})\]', sent)
+        for num in matches:
+            ref_num = f"[{num}]"
+            citation_contexts.setdefault(ref_num, []).append(sent.strip())
+    return citation_contexts
+
+def extract_title_and_summary(text_sample: str, model="gpt-4") -> Dict:
     prompt = f"""
-다음은 하나의 논문에서 추출한 전체 텍스트입니다. 이 텍스트를 바탕으로 아래 두 가지 정보를 JSON 형식으로 정리해줘.
+다음은 논문 일부입니다. 아래 두 가지 정보를 JSON 형식으로 생성해줘.
 
-1. 논문 제목: 논문 본문에서 유추 가능한 가장 정확한 제목 (ex. 첫 페이지 맨 위나 제목 형식의 큰 글씨 등에서 추정)
-2. 참고문헌 목록: "References" 또는 "참고문헌" 섹션에 나오는 각 레퍼런스를 아래 형식으로 리스트로 정리
-
-출력 형식 예시는 다음과 같아:
 {{
   "title": "논문 제목",
-  "references": [
-    {{
-      "제목": "각 레퍼런스의 논문 제목 (있다면)",
-      "참조내용": "원문에서 발췌한 전체 참고문헌 문장"
-    }},
-    ...
-  ]
+  "summary": "논문 요약 (2~3문장)"
 }}
 
-주의:
-- 레퍼런스 개별 항목들은 줄바꿈이나 번호로 구분되는 것들만 포함
-- 제목이 없는 경우 "제목 없음"으로 둬도 괜찮아
-- 출력은 반드시 위 JSON 형식을 따라야 해
-
-다음은 논문 텍스트입니다:
------------------------------
-{full_text[-10000:]}
+본문:
+-----------------
+{text_sample}
 """
 
     response = client.chat.completions.create(
-        model=model_name,
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
     )
 
     try:
-        parsed = json.loads(response.choices[0].message.content.strip())
-        return parsed
+        return json.loads(response.choices[0].message.content.strip())
     except Exception as e:
         print("❌ LLM 응답 파싱 실패:", e)
-        print("🔎 원본 응답:\n", response.choices[0].message.content)
-        return {"title": "", "references": []}
+        return {"title": "", "summary": ""}
 
+def extract_ref_titles_from_section(ref_text: str, model="gpt-4") -> Dict[str, str]:
+    prompt = f"""
+다음은 논문의 References 섹션입니다. 각 참고문헌의 인용번호와 제목만 추론해서 JSON으로 정리해줘.
 
-def save_extracted_info(pdf_path: str, extracted: Dict[str, object]):
-    base_path = pdf_path.replace(".pdf", "")
-    
-    # 제목 저장
-    title_path = base_path + "_title.txt"
-    with open(title_path, "w", encoding="utf-8") as f:
-        f.write(extracted.get("title", "제목 없음"))
-    print(f"📄 논문 제목 저장 완료: {title_path}")
-    
-    # 참고문헌 저장
-    refs_path = base_path + "_refs.txt"
-    with open(refs_path, "w", encoding="utf-8") as f:
-        for i, ref in enumerate(extracted.get("references", []), start=1):
-            f.write(f"[{i}] 제목: {ref['제목']}\n참조내용: {ref['참조내용']}\n\n")
-    print(f"📚 레퍼런스 {len(extracted.get('references', []))}개 저장 완료: {refs_path}")
+출력 형식:
+{{
+  "[1]": "참고문헌 제목",
+  "[2]": "참고문헌 제목",
+  ...
+}}
 
+참고문헌 섹션:
+-----------------
+{ref_text}
+"""
 
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+
+    try:
+        return json.loads(response.choices[0].message.content.strip())
+    except Exception as e:
+        print("❌ 참고문헌 제목 추론 실패:", e)
+        return {}
+
+def build_metadata(text: str, title_summary: Dict, ref_titles: Dict[str, str], citation_contexts: Dict[str, list]) -> Dict:
+    references = []
+    for ref_number, ref_title in ref_titles.items():
+        references.append({
+            "ref_number": ref_number,
+            "ref_title": ref_title,
+            "citation_contexts": citation_contexts.get(ref_number, [])
+        })
+
+    return {
+        "title": title_summary.get("title", ""),
+        "summary": title_summary.get("summary", ""),
+        "references": references
+    }
+
+def save_metadata(metadata: Dict, pdf_path: str):
+    out_path = pdf_path.replace(".pdf", "_metadata.json")
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+    print(f"✅ 메타데이터 저장 완료: {out_path}")
+
+def process_pdf(pdf_path: str):
+    full_text = extract_text_from_pdf(pdf_path)
+    ref_section = extract_reference_section(full_text)
+    text_sample = full_text[:2000]
+
+    print("🚀 LLM으로 제목 + 요약 추출 중...")
+    title_summary = extract_title_and_summary(text_sample)
+
+    print("📚 참고문헌 섹션에서 제목 추출 중...")
+    ref_titles = extract_ref_titles_from_section(ref_section)
+
+    print("🔍 본문에서 citation context 추출 중...")
+    citation_contexts = extract_citation_contexts(full_text)
+
+    metadata = build_metadata(full_text, title_summary, ref_titles, citation_contexts)
+    save_metadata(metadata, pdf_path)
+
+# 예시 실행
 if __name__ == "__main__":
-    pdf_file = "transformer.pdf"
-    result = extract_title_and_references_via_llm(pdf_file)
-
-    print("\n🎯 논문 제목:", result.get("title", "없음"))
-    print("📚 레퍼런스 개수:", len(result.get("references", [])))
-    
-    save_extracted_info(pdf_file, result)
+    process_pdf("transformer.pdf")
