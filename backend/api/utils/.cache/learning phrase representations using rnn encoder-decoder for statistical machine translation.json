@@ -1,0 +1,17 @@
+{
+  "title": "Learning Phrase Representations using RNN Encoder–Decoder for Statistical Machine Translation",
+  "abstract": "Kyunghyun Cho, Bart van Merriënboer, Caglar Gulcehre, Dzmitry Bahdanau, Fethi Bougares, Holger Schwenk, Yoshua Bengio. Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing (EMNLP). 2014.",
+  "doi": "https://doi.org/10.3115/v1/d14-1179",
+  "year": 2014,
+  "authors": [
+    "Kyunghyun Cho",
+    "Bart van Merriënboer",
+    "Çağlar Gülçehre",
+    "Dzmitry Bahdanau",
+    "Fethi Bougares",
+    "Holger Schwenk",
+    "Yoshua Bengio"
+  ],
+  "citation_count": 21841,
+  "source": "openalex"
+}

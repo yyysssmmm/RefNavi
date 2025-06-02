@@ -25,18 +25,31 @@ export default function AnalysisPage() {
     addChatMessage,
     reset,
     isLoaded,
+    setAnalysisResult,
   } = usePDFStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('none');
 
-  // 데이터가 없으면 홈으로 리다이렉트 (useEffect로 처리)
   useEffect(() => {
-    // isLoaded가 true가 된 후에만 리다이렉트 확인
-    if (isLoaded && (!currentPDF || !analysisResult)) {
-      console.log('데이터가 없어서 홈으로 리다이렉트');
-      router.push('/');
+    const fetchMetadata = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/metadata/get_metadata");
+        if (!res.ok) {
+          throw new Error("Failed to fetch metadata");
+        }
+        const data = await res.json();
+        setAnalysisResult(data); // ✅ zustand 전역 상태 업데이트
+      } catch (err) {
+        console.error("🛑 메타데이터 로딩 실패:", err);
+      }
+    };
+
+    // analysisResult가 없을 때만 호출 (중복 방지)
+    if (isLoaded && currentPDF && !analysisResult) {
+      fetchMetadata();
     }
-  }, [currentPDF, analysisResult, router, isLoaded]);
+  }, [isLoaded, currentPDF, analysisResult, setAnalysisResult]);
+
 
   // 로딩 중이거나 데이터가 없는 경우 로딩 표시
   if (!isLoaded || !currentPDF || !analysisResult) {
@@ -352,7 +365,7 @@ export default function AnalysisPage() {
             margin: 0,
             lineHeight: 1.2
           }}>
-            {analysisResult.summary.totalReferences}개 논문 • {analysisResult.summary.totalCitations}개 인용
+            {analysisResult.references.length}개 논문 인용됨
           </p>
         </div>
       </div>

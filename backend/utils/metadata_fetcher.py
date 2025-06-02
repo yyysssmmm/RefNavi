@@ -1,31 +1,9 @@
-"""
-metadata_fetcher_semanticscholar.py
-
-Description:
-    This module fetches paper metadata (title, abstract, DOI, authors, etc.)
-    using the Semantic Scholar API, based on reference titles extracted from PDFs.
-
-Background:
-    - Originally, metadata was retrieved using the OpenAlex API.
-    - However, OpenAlex does not cover all scholarly publications, causing frequent lookup failures.
-    - Semantic Scholar was found to have broader coverage and better support for various paper types.
-    - This version replaces OpenAlex with Semantic Scholar as the primary metadata provider.
-
-Improvements:
-    - Added request throttling (timeouts and backoff) to handle Semantic Scholar's rate limits.
-    - Integrated local caching to avoid redundant API calls and reduce load.
-    - Fallback logic includes approximate title matching with validation to avoid hallucinated matches.
-
-Author: Sungmin Yang
-Last Modified: 2025-06-01
-"""
-
 import os
 import json
 import time
 import requests
 import unicodedata
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 from difflib import SequenceMatcher
 
 # ============================== #
@@ -33,7 +11,6 @@ from difflib import SequenceMatcher
 # ============================== #
 
 def normalize_title(title: str) -> str:
-    """유사도 비교 및 캐싱을 위한 제목 정규화"""
     title = unicodedata.normalize("NFKC", title)
     title = title.lower().strip()
     title = title.replace("’", "'").replace("‘", "'")
@@ -73,67 +50,125 @@ def is_metadata_aligned(best_meta: Dict, ref_meta: Dict) -> bool:
     return year_match and author_match
 
 # ============================== #
-#     Semantic Scholar 검색     #
+#       OpenAlex API 호출       #
 # ============================== #
 
-def search_semantic_scholar_metadata(title: str, ref_meta: Dict, cache_dir=".cache") -> Dict:
+# 🔁 OpenAlex abstract 재구성
+def reconstruct_abstract(index: Dict[str, List[int]]) -> str:
+    if not index:
+        return ""
+    tokens = ["" for _ in range(max(i for v in index.values() for i in v) + 1)]
+    for word, positions in index.items():
+        for pos in positions:
+            tokens[pos] = word
+    return " ".join(tokens)
+
+def search_openalex_metadata(title: str, ref_meta: Dict, cache_dir: str) -> Optional[Dict]:
+
     norm_title = normalize_title(title)
     cached = load_cache(cache_dir, norm_title)
     if cached:
         return cached
 
     try:
-        url = "https://api.semanticscholar.org/graph/v1/paper/search"
-        params = {
-            "query": title,
-            "limit": 5,
-            "fields": "title,abstract,year,authors,citationCount,externalIds"
-        }
-        headers = {"User-Agent": "RefNavi-MetadataFetcher/1.0"}
-        response = requests.get(url, params=params, headers=headers, timeout=20)
+        url = "https://api.openalex.org/works"
+        params = {"search": norm_title, "per-page": 5}
+        response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        data = response.json()
+        results = response.json().get("results", [])
 
-        if data.get("data"):
-            best = max(data["data"], key=lambda x: similarity(x.get("title", ""), title))
+        if results:
+            best = max(results, key=lambda r: similarity(r.get("title", ""), title))
             sim_score = similarity(best.get("title", ""), title)
 
             print(sim_score)
             print(normalize_title(best.get("title", "")))
             print(norm_title)
 
-            if sim_score == 1 or (sim_score > 0.6 and is_metadata_aligned(best, ref_meta)):
+            if sim_score == 1 or (sim_score > 0.5 and is_metadata_aligned(best, ref_meta)):
                 result = {
                     "title": best.get("title"),
-                    "abstract": best.get("abstract"),
-                    "doi": best.get("externalIds", {}).get("DOI"),
-                    "year": best.get("year"),
-                    "authors": [a["name"] for a in best.get("authors", [])],
-                    "citation_count": best.get("citationCount", 0)
+                    "abstract": reconstruct_abstract(best.get("abstract_inverted_index")),
+                    "doi": best.get("doi"),
+                    "year": best.get("publication_year"),
+                    "authors": [a['author']['display_name'] for a in best.get("authorships", [])],
+                    "citation_count": best.get("cited_by_count"),
+                    "source": "openalex"
                 }
                 save_cache(cache_dir, norm_title, result)
                 return result
 
     except Exception as e:
-        print(f"❌ Semantic Scholar 예외 발생: {e}")
-
-    # ✅ 실패 시에도 동일한 템플릿으로 반환
-    fallback_result = {
-        "title": "",
-        "abstract": "",
-        "doi": "",
-        "year": None,
-        "authors": [],
-        "citation_count": 0
-    }
-    save_cache(cache_dir, norm_title, fallback_result)
-    return fallback_result
+        print(f"❌ OpenAlex 예외 발생: {e}")
+    return None
 
 # ============================== #
-#      메타데이터 통합 처리     #
+#  Semantic Scholar API 호출    #
 # ============================== #
 
-def enrich_metadata_with_semanticscholar(pdf_metadata_path: str, save_path="final_metadata_ss.json") -> None:
+def search_semanticscholar_metadata(title: str, ref_meta: Dict, cache_dir: str, max_retries: int = 3) -> Optional[Dict]:
+    url = "https://api.semanticscholar.org/graph/v1/paper/search"
+    norm_title = normalize_title(title)
+
+    cached = load_cache(cache_dir, norm_title)
+    if cached:
+        return cached
+
+    backoff = 2
+
+    for attempt in range(max_retries):
+        try:
+            params = {
+                "query": norm_title,
+                "limit": 5,
+                "fields": "title,abstract,year,authors,citationCount,externalIds"
+            }
+            headers = {"User-Agent": "RefNavi/1.0"}
+            response = requests.get(url, params=params, headers=headers, timeout=20)
+
+            if response.status_code == 429:
+                print(f"⚠️ Rate limit 발생. {backoff}초 후 재시도...")
+                time.sleep(backoff)
+                backoff *= 2
+                continue
+
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("data"):
+                # best = max(data["data"], key=lambda x: similarity(x.get("title", ""), title))
+                best = data["data"][0]
+                sim_score = similarity(best.get("title", ""), title)
+
+                print(sim_score)
+                print(normalize_title(best.get("title", "")))
+                print(norm_title)
+
+                if sim_score == 1 or (sim_score > 0.5 and is_metadata_aligned(best, ref_meta)):
+                    result = {
+                        "title": best.get("title"),
+                        "abstract": best.get("abstract"),
+                        "doi": best.get("externalIds", {}).get("DOI"),
+                        "year": best.get("year"),
+                        "authors": [a["name"] for a in best.get("authors", [])],
+                        "citation_count": best.get("citationCount", 0),
+                        "source": "semantic scholar"
+                    }
+                    save_cache(cache_dir, norm_title, result)
+                    return result
+
+
+        except Exception as e:
+            print(f"❌ Semantic Scholar 예외 발생: {e}")
+            break
+
+    return None
+
+# ============================== #
+#     통합 메타데이터 검색     #
+# ============================== #
+
+def enrich_metadata_with_fallback(pdf_metadata_path: str, save_path: str, cache_dir: str) -> None:
     with open(pdf_metadata_path, "r", encoding="utf-8") as f:
         base_metadata = json.load(f)
 
@@ -149,21 +184,32 @@ def enrich_metadata_with_semanticscholar(pdf_metadata_path: str, save_path="fina
             enriched_refs.append(ref)
             continue
 
-        metadata = search_semantic_scholar_metadata(title, ref)
+        metadata = search_openalex_metadata(title, ref, cache_dir)
         if metadata:
-            ref.update({
-                "abstract": metadata.get("abstract", ""),
-                "doi": metadata.get("doi", ""),
-                "year": metadata.get("year"),
-                "authors": metadata.get("authors", []),
-                "citation_count": metadata.get("citation_count", 0)
-            })
-            print(f"    ✅ 메타데이터 추출 성공 → 출처: SemanticScholar")
+            ref.update(metadata)
+            print(f"    ✅ 메타데이터 추출 성공 → 출처: OpenAlex")
+        
         else:
-            print(f"    ❌ 메타데이터 추출 실패")
+            metadata = search_semanticscholar_metadata(title, ref, cache_dir)
+            if metadata:
+                ref.update(metadata)
+                print(f"    ✅ 메타데이터 추출 성공 → 출처: Semantic Scholar")
+                time.sleep(2)
+
+            else:
+                metadata = {
+                    "title": "",
+                    "abstract": "",
+                    "doi": "",
+                    "year": None,
+                    "authors": [],
+                    "citation_count": 0,
+                    "source": "none"
+                }
+                ref.update(metadata)
+                print(f"    ❌ 메타데이터 추출 실패")
 
         enriched_refs.append(ref)
-        time.sleep(2)
 
     base_metadata["references"] = enriched_refs
 
@@ -177,4 +223,4 @@ def enrich_metadata_with_semanticscholar(pdf_metadata_path: str, save_path="fina
 # ============================== #
 
 if __name__ == "__main__":
-    enrich_metadata_with_semanticscholar("transformer_metadata.json", "integrated_metadata.json")
+    enrich_metadata_with_fallback("transformer_metadata.json", "integrated_metadata.json", ".cache")

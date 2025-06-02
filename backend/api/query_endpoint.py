@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,10 +30,12 @@ class QueryResponse(BaseModel):
 
 # ✅ 메인 엔드포인트
 @app.post("/query", response_model=QueryResponse)
+
 def query_endpoint(request: QueryRequest):
     try:
         print(f"📥 받은 쿼리: {request.query}")
-        answer, source_docs = run_qa_chain(request.query, k=request.top_k, return_sources=True)
+        
+        answer, source_docs = run_qa_chain(request.query, k=request.top_k, VECTOR_DB_DIR="../vectorstore/chroma_db", return_sources=True)
 
         sources = [
             {
