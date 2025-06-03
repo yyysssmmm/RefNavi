@@ -47,7 +47,9 @@ coverage/
 .next/
 out/
 build/
-.cache
+.cache/
+**/.cache/
+**/.cache/**
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
