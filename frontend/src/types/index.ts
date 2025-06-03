@@ -7,12 +7,12 @@ export interface PDFFile {
 }
 
 export interface Reference {
-  id: number;
-  title: string;
+  ref_number: number;
+  ref_title: string;
   authors: string[];
   year: number;
-  venue: string;
-  citationCount: number;
+  citation_contexts: string;
+  citation_count: number;
   doi?: string;
   abstract?: string;
 }

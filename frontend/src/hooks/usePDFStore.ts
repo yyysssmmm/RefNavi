@@ -16,6 +16,7 @@ export function usePDFStore() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedReference, setSelectedReference] = useState<Reference | null>(null);
+  const [selectedReference_second_tab, setSelectedReference_second_tab] = useState<Reference | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
@@ -134,6 +135,7 @@ export function usePDFStore() {
     setAnalysisResult(null);
     setIsAnalyzing(false);
     setSelectedReference(null);
+    setSelectedReference_second_tab(null);
     setChatMessages([]);
     setIsChatOpen(false);
     setShowPDFViewer(false);
@@ -149,6 +151,7 @@ export function usePDFStore() {
     analysisResult,
     isAnalyzing,
     selectedReference,
+    selectedReference_second_tab,
     chatMessages,
     isChatOpen,
     showPDFViewer,
@@ -158,6 +161,7 @@ export function usePDFStore() {
     uploadPDF,
     startAnalysis,
     setSelectedReference,
+    setSelectedReference_second_tab,
     addChatMessage,
     toggleChat,
     togglePDFViewer,

@@ -50,27 +50,27 @@ export default function ReferenceList({ references, selectedReference, onSelectR
       }}>
         {references.map((reference) => (
           <div
-            key={reference.id}
+            key={reference.ref_number}
             onClick={() => onSelectReference(reference)}
             style={{
-              background: selectedReference?.id === reference.id ? '#eef2ff' : 'white',
-              border: selectedReference?.id === reference.id ? '2px solid #4f46e5' : '1px solid #e5e7eb',
+              background: selectedReference?.ref_number === reference.ref_number ? '#eef2ff' : 'white',
+              border: selectedReference?.ref_number === reference.ref_number ? '2px solid #4f46e5' : '1px solid #e5e7eb',
               borderRadius: 'clamp(6px, 1vw, 10px)',
               padding: 'clamp(0.75rem, 2vh, 1rem)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: selectedReference?.id === reference.id 
+              boxShadow: selectedReference?.ref_number === reference.ref_number
                 ? '0 4px 12px rgba(79, 70, 229, 0.1)' 
                 : '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}
             onMouseEnter={(e) => {
-              if (selectedReference?.id !== reference.id) {
+              if (selectedReference?.ref_number !== reference.ref_number) {
                 e.currentTarget.style.background = '#f8fafc';
                 e.currentTarget.style.borderColor = '#cbd5e1';
               }
             }}
             onMouseLeave={(e) => {
-              if (selectedReference?.id !== reference.id) {
+              if (selectedReference?.ref_number !== reference.ref_number) {
                 e.currentTarget.style.background = 'white';
                 e.currentTarget.style.borderColor = '#e5e7eb';
               }
@@ -90,9 +90,9 @@ export default function ReferenceList({ references, selectedReference, onSelectR
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden'
                 }}>
-                  {reference.title}
+                  {reference.ref_title}
                 </h4>
-                {reference.url && (
+                {reference.doi && (
                   <ExternalLink style={{ 
                     width: 'clamp(12px, 1.5vw, 16px)', 
                     height: 'clamp(12px, 1.5vw, 16px)', 
@@ -113,7 +113,7 @@ export default function ReferenceList({ references, selectedReference, onSelectR
                 <span>{formatAuthors(reference.authors)}</span>
                 <span>•</span>
                 <span>{reference.year}</span>
-                {reference.venue && (
+                {reference.citation_contexts && (
                   <>
                     <span>•</span>
                     <span style={{ 
@@ -122,13 +122,13 @@ export default function ReferenceList({ references, selectedReference, onSelectR
                       whiteSpace: 'nowrap',
                       maxWidth: '100px'
                     }}>
-                      {reference.venue}
+                      {reference.citation_contexts}
                     </span>
                   </>
                 )}
               </div>
               
-              {reference.citationCount !== undefined && (
+              {reference.citation_count !== undefined && (
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -143,7 +143,7 @@ export default function ReferenceList({ references, selectedReference, onSelectR
                     fontSize: 'clamp(0.7rem, 1.3vw, 0.8rem)',
                     color: '#6b7280'
                   }}>
-                    {reference.citationCount.toLocaleString()} citations
+                    {reference.citation_count.toLocaleString()} citations
                   </span>
                 </div>
               )}
