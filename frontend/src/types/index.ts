@@ -35,12 +35,18 @@ export interface AnalysisResult {
     sections: string[];
   };
 }
-
+''
 export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: {
+    title?: string;
+    year?: number;
+    authors?: string[];
+    summary?: string;
+  }[];
 }
 
 export interface AppState {

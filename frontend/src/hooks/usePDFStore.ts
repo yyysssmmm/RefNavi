@@ -112,15 +112,26 @@ export function usePDFStore() {
   }, [currentPDF]);
 
 
-  const addChatMessage = useCallback((content: string, type: 'user' | 'assistant' = 'user') => {
+  const addChatMessage : (
+    content: string,
+    type?: 'user' | 'assistant',
+    sources?: {
+      title?: string;
+      year?: number;
+      authors?: string[];
+      summary?: string;
+    }[]
+  ) => void = useCallback((content, type='user', sources) => {
     const message: ChatMessage = {
       id: generateId(),
       type,
       content,
       timestamp: new Date(),
+      sources,  // ⬅️ 추가됨
     };
     setChatMessages(prev => [...prev, message]);
   }, []);
+
 
   const toggleChat = useCallback(() => {
     setIsChatOpen(prev => !prev);
