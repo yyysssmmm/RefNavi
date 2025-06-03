@@ -18,25 +18,40 @@ export default function AnalysisPage() {
     currentPDF,
     analysisResult,
     selectedReference,
+    selectedReference_second_tab,
     setSelectedReference,
+    setSelectedReference_second_tab,
     chatMessages,
     isChatOpen,
     toggleChat,
     addChatMessage,
     reset,
     isLoaded,
+    setAnalysisResult,
   } = usePDFStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('none');
 
-  // 데이터가 없으면 홈으로 리다이렉트 (useEffect로 처리)
   useEffect(() => {
-    // isLoaded가 true가 된 후에만 리다이렉트 확인
-    if (isLoaded && (!currentPDF || !analysisResult)) {
-      console.log('데이터가 없어서 홈으로 리다이렉트');
-      router.push('/');
+    const fetchMetadata = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/metadata/get_metadata");
+        if (!res.ok) {
+          throw new Error("Failed to fetch metadata");
+        }
+        const data = await res.json();
+        setAnalysisResult(data); // ✅ zustand 전역 상태 업데이트
+      } catch (err) {
+        console.error("🛑 메타데이터 로딩 실패:", err);
+      }
+    };
+
+    // analysisResult가 없을 때만 호출 (중복 방지)
+    if (isLoaded && currentPDF && !analysisResult) {
+      fetchMetadata();
     }
-  }, [currentPDF, analysisResult, router, isLoaded]);
+  }, [isLoaded, currentPDF, analysisResult, setAnalysisResult]);
+
 
   // 로딩 중이거나 데이터가 없는 경우 로딩 표시
   if (!isLoaded || !currentPDF || !analysisResult) {
@@ -58,17 +73,30 @@ export default function AnalysisPage() {
   };
 
   // 인용 번호 클릭 핸들러
-  const handleCitationClick = (citationNumber: number) => {
-    // analysisResult.references에서 해당 인용 번호와 매칭되는 논문 찾기
-    const reference = analysisResult.references.find(ref => 
-      ref.id === citationNumber || ref.id.toString() === citationNumber.toString()
-    );
+  const handleCitationClick = (
+    citationNumber: number,
+    options?: { clearReferences?: boolean; keepViewMode?: boolean }
+  ) => {
+    console.log('🔎 클릭된 citationNumber:', citationNumber);
+
+    const reference = analysisResult.references.find((ref) => {
+      const refNumRaw = String(ref.ref_number); // 예: "[1]" 또는 "[1, 2]"
+      
+      // 정규식으로 숫자들만 추출 → ex: [1, 2]
+      const matchedNumbers = refNumRaw.match(/\d+/g)?.map(Number) || [];
+
+      console.log(`📌 ${ref.ref_title} 의 ref_number 추출값:`, matchedNumbers);
+
+      return matchedNumbers.includes(citationNumber);
+    });
+
     if (reference) {
-      setSelectedReference(reference);
-      // 참고문헌 목록이 보이지 않는다면 PDF 모드로 유지하되, 하단에 선택된 논문 정보 표시
-      console.log(`인용 번호 ${citationNumber} 클릭됨:`, reference.title);
+      setSelectedReference_second_tab(reference);
+      if (!options?.keepViewMode) setViewMode('pdf');
+      if (options?.clearReferences) setSelectedReference(null);
+      console.log(`✅ 인용 번호 ${citationNumber} 클릭됨:`, reference.ref_title);
     } else {
-      console.log(`인용 번호 ${citationNumber}에 해당하는 논문을 찾을 수 없습니다.`);
+      console.warn(`❌ 인용 번호 ${citationNumber}에 해당하는 논문을 찾을 수 없습니다.`);
     }
   };
 
@@ -86,16 +114,61 @@ export default function AnalysisPage() {
               flex: 1, 
               overflow: 'hidden',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'row', // 🔁 핵심 수정!
+              gap: '1rem' // 🔧 카드 간 간격 추가
             }}>
-              <ReferenceList
-                references={analysisResult.references}
-                selectedReference={selectedReference}
-                onSelectReference={setSelectedReference}
-              />
+              {/* 왼쪽: 참고문헌 리스트 */}
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                <ReferenceList
+                  references={analysisResult.references}
+                  selectedReference={selectedReference}
+                  onSelectReference={(ref) => {
+                    setSelectedReference(ref);
+                    if (viewMode !== 'references') {
+                      setViewMode('pdf');
+                    }
+                  }}
+                />
+              </div>
+
+              {/* 오른쪽: 상세정보 카드 */}
+              {selectedReference && (
+                <div style={{
+                  flex: 1,
+                  padding: '1rem', 
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  background: '#f9fafb',
+                  overflowY: 'auto'
+                }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{selectedReference.ref_title}</h3>
+                  <p style={{ fontSize: '0.9rem', color: '#475569' }}>
+                    👥 {selectedReference.authors?.join(', ')} | 📅 {selectedReference.year} | 📊 {selectedReference.citation_count?.toLocaleString()}회 인용
+                  </p>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#334155' }}>
+                    {selectedReference.abstract || '초록 정보가 없습니다.'}
+                  </p>
+                  <div style={{ textAlign: 'right', marginTop: '0.75rem' }}>
+                    <button 
+                      onClick={() => setSelectedReference(null)}
+                      style={{
+                        padding: '0.4rem 0.8rem',
+                        background: '#e0e7ff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
+
 
       case 'pdf':
         return (
@@ -111,8 +184,10 @@ export default function AnalysisPage() {
               }}>
                 <PDFViewer
                   pdfFile={currentPDF}
-                  isVisible={true}
-                  onCitationClick={handleCitationClick}
+                  isVisible={viewMode === 'pdf'}
+                  onCitationClick={(citationNumber) => {
+                    handleCitationClick(citationNumber, { clearReferences: true, keepViewMode: true });
+                  }}
                 />
               </div>
             </div>
@@ -130,7 +205,7 @@ export default function AnalysisPage() {
                 display: 'flex',
                 flexDirection: 'column'
               }}>
-                {selectedReference ? (
+                {selectedReference_second_tab ? (
                   <div style={{
                     padding: 'clamp(1rem, 2vh, 1.5rem)',
                     background: '#f8fafc',
@@ -147,7 +222,7 @@ export default function AnalysisPage() {
                       fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
                       fontWeight: 600
                     }}>
-                      📄 인용 번호 [{selectedReference.id}]
+                      📄 인용 번호 [{selectedReference_second_tab.ref_number}]
                     </div>
 
                     <h3 style={{
@@ -157,7 +232,7 @@ export default function AnalysisPage() {
                       margin: '0 0 clamp(0.75rem, 1.5vh, 1rem) 0',
                       lineHeight: 1.3
                     }}>
-                      {selectedReference.title}
+                      {selectedReference_second_tab.ref_title}
                     </h3>
                     
                     <div style={{
@@ -169,7 +244,7 @@ export default function AnalysisPage() {
                         margin: '0 0 clamp(0.5rem, 1vh, 0.75rem) 0',
                         fontWeight: 500
                       }}>
-                        👥 {selectedReference.authors.join(', ')}
+                        👥 {selectedReference_second_tab.authors.join(', ')}
                       </p>
                       
                       <div style={{
@@ -179,9 +254,9 @@ export default function AnalysisPage() {
                         fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
                         color: '#64748b'
                       }}>
-                        <span>📅 {selectedReference.year}</span>
-                        <span>📖 {selectedReference.venue}</span>
-                        <span>📊 {selectedReference.citationCount.toLocaleString()}회 인용</span>
+                        <span>📅 {selectedReference_second_tab.year}</span>
+                        <span>📖 {selectedReference_second_tab.citation_contexts}</span>
+                        <span>📊 {selectedReference_second_tab.citation_count.toLocaleString()}회 인용</span>
                       </div>
                     </div>
 
@@ -205,7 +280,7 @@ export default function AnalysisPage() {
                         lineHeight: 1.6,
                         margin: 0
                       }}>
-                        {selectedReference.abstract}
+                        {selectedReference_second_tab.abstract}
                       </p>
                     </div>
 
@@ -214,7 +289,7 @@ export default function AnalysisPage() {
                       textAlign: 'center'
                     }}>
                       <button 
-                        onClick={() => setSelectedReference(null)}
+                        onClick={() => setSelectedReference_second_tab(null)}
                         style={{
                           padding: 'clamp(0.5rem, 1vh, 0.75rem) clamp(1rem, 2vw, 1.5rem)',
                           background: '#f1f5f9',
@@ -352,7 +427,7 @@ export default function AnalysisPage() {
             margin: 0,
             lineHeight: 1.2
           }}>
-            {analysisResult.summary.totalReferences}개 논문 • {analysisResult.summary.totalCitations}개 인용
+            {analysisResult.references.length}개 논문 인용됨
           </p>
         </div>
       </div>

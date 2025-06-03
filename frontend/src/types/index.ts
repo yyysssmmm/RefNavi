@@ -7,12 +7,12 @@ export interface PDFFile {
 }
 
 export interface Reference {
-  id: number;
-  title: string;
+  ref_number: number;
+  ref_title: string;
   authors: string[];
   year: number;
-  venue: string;
-  citationCount: number;
+  citation_contexts: string;
+  citation_count: number;
   doi?: string;
   abstract?: string;
 }
@@ -35,12 +35,18 @@ export interface AnalysisResult {
     sections: string[];
   };
 }
-
+''
 export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: {
+    title?: string;
+    year?: number;
+    authors?: string[];
+    summary?: string;
+  }[];
 }
 
 export interface AppState {

@@ -1,24 +1,67 @@
-# Python
+# -----------------------
+# 🔧 Common (OS/IDE)
+# -----------------------
+.DS_Store
+.idea/
+.vscode/
+
+# -----------------------
+# 🔐 Env & Secrets
+# -----------------------
+.env*
+*.pem
+
+# -----------------------
+# 🐍 Python
+# -----------------------
 __pycache__/
 *.pyc
-
-# 가상환경
+*.pyo
+*.pyd
 venv/
+.ipynb_checkpoints/
 
-# 모델 및 바이너리
+# -----------------------
+# 🤖 ML Models & Binaries
+# -----------------------
 *.pt
 *.ckpt
 *.onnx
 *.h5
-*.dylib
-*.so
 *.safetensors
+*.so
+*.dylib
 
-# Jupyter
-.ipynb_checkpoints/
+# -----------------------
+# ⚙️ Node.js (Frontend)
+# -----------------------
+node_modules/
+.pnp/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+coverage/
+.next/
+out/
+build/
+.cache/
+**/.cache/
+**/.cache/**
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Mac OS
-.DS_Store
+# -----------------------
+# ☁️ Hosting
+# -----------------------
+.vercel
 
-# 기타
-.env
+# -----------------------
+# ⛏️ Typescript
+# -----------------------
+*.tsbuildinfo
+next-env.d.ts

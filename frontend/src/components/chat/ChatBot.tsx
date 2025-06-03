@@ -8,23 +8,57 @@ interface ChatBotProps {
   isOpen: boolean;
   onClose: () => void;
   messages: ChatMessage[];
-  onSendMessage: (message: string, type?: 'user' | 'assistant') => void;
+  onSendMessage: (
+    message: string,
+    type?: 'user' | 'assistant',
+    sources?: {
+      title?: string;
+      year?: number;
+      authors?: string[];
+      summary?: string;
+    } []
+  ) => void;
 }
+
+// ✅ ChatBot 컴포넌트 함수 정의 위에 삽입
+async function fetchAnswer(query: string, top_k: number = 3): Promise<{ answer: string; sources: any[] }> {
+  const response = await fetch("http://localhost:8000/query", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, top_k }),
+  });
+
+  const raw = await response.text();  // 🔥 중요: raw 텍스트 보기
+  console.log("📦 Raw Response Text:", raw);
+
+  if (!response.ok) {
+    throw new Error("❌ 답변을 가져오는 데 실패했습니다.");
+  }
+
+  return JSON.parse(raw);  // 혹은 response.json()
+}
+
 
 export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: ChatBotProps) {
   const [inputMessage, setInputMessage] = useState('');
 
-  const handleSend = () => {
-    if (inputMessage.trim()) {
-      onSendMessage(inputMessage.trim());
-      setInputMessage('');
-      
-      // 임시 자동 응답
-      setTimeout(() => {
-        onSendMessage('안녕하세요! 논문 분석에 대해 궁금한 점이 있으시면 언제든 물어보세요.', 'assistant');
-      }, 1000);
+const handleSend = async () => {
+  if (inputMessage.trim()) {
+    const userMessage = inputMessage.trim();
+    onSendMessage(userMessage, 'user');
+    setInputMessage('');
+
+    try {
+      const { answer, sources } = await fetchAnswer(userMessage, 3);
+      onSendMessage(answer, 'assistant', sources);
+    } catch (error) {
+      console.error('❌ LLM 응답 실패:', error);
+      onSendMessage('⚠️ 답변을 불러오지 못했습니다. 다시 시도해주세요.', 'assistant');
     }
-  };
+  }
+};
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -110,44 +144,46 @@ export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: Ch
           gap: 'clamp(0.75rem, 2vh, 1rem)'
         }}>
           {messages.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              color: '#6b7280',
-              fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
-              padding: 'clamp(1rem, 3vh, 2rem)'
-            }}>
-              <p style={{ margin: 0, marginBottom: 'clamp(0.5rem, 1vh, 1rem)' }}>
-                안녕하세요! 👋
-              </p>
-              <p style={{ margin: 0, lineHeight: 1.5 }}>
-                논문에 대해 궁금한 점이 있으시면 물어보세요.
-              </p>
-            </div>
-          ) : (
-            messages.map((message) => (
+            <div>...</div>
+          ) : messages.map((message) => (
+            <div
+              key={message.id}
+              style={{
+                display: 'flex',
+                justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
+              }}
+            >
               <div
-                key={message.id}
                 style={{
-                  display: 'flex',
-                  justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start'
+                  maxWidth: '80%',
+                  padding: 'clamp(0.5rem, 1.5vh, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
+                  borderRadius: 'clamp(8px, 1.5vw, 12px)',
+                  fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                  lineHeight: 1.4,
+                  background: message.type === 'user' ? '#4f46e5' : '#f3f4f6',
+                  color: message.type === 'user' ? 'white' : '#111827',
+                  whiteSpace: 'pre-wrap',
                 }}
               >
-                <div
-                  style={{
-                    maxWidth: '80%',
-                    padding: 'clamp(0.5rem, 1.5vh, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
-                    borderRadius: 'clamp(8px, 1.5vw, 12px)',
-                    fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
-                    lineHeight: 1.4,
-                    background: message.type === 'user' ? '#4f46e5' : '#f3f4f6',
-                    color: message.type === 'user' ? 'white' : '#111827'
-                  }}
-                >
-                  {message.content}
-                </div>
+                {message.content}
+                {message.type === 'assistant' && message.sources && message.sources.length > 0 && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.85em', color: '#6b7280' }}>
+                    🔗 출처:
+                    <ul style={{ paddingLeft: '1rem', margin: 0 }}>
+                      {message.sources.map((src, idx) => (
+                        <li key={idx}>
+                          <strong>{src.title || '제목 없음'}</strong>
+                          {src.year && ` (${src.year})`}<br />
+                          {src.authors?.join(', ')}<br />
+                          {src.summary && <em>{src.summary}</em>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            ))
-          )}
+            </div>
+          ))}
         </div>
         
         {/* 입력 영역 */}
