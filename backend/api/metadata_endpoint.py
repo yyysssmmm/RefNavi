@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/get_metadata")
 def get_metadata():
-    metadata_path = "./utils/integrated_metadata.json"
+    metadata_path = "./utils/get_metadata/integrated_metadata.json"
     if not os.path.exists(metadata_path):
         return JSONResponse(status_code=404, content={"error": "Metadata file not found"})
 

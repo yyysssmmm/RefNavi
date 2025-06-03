@@ -19,6 +19,6 @@ app.add_middleware(
 )
 
 # ✅ 모든 라우터 등록
-app.include_router(metadata_router, prefix="/metadata")
+app.include_router(metadata_router, prefix="")
 app.include_router(query_router, prefix="")
 app.include_router(upload_router, prefix="")

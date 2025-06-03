@@ -5,16 +5,22 @@ import requests
 import unicodedata
 from typing import Dict, List, Optional
 from difflib import SequenceMatcher
+import re
 
 # ============================== #
 #       유틸 함수 정의          #
 # ============================== #
 
+def sanitize_filename(filename: str) -> str:
+    """파일 이름에서 특수문자를 제거하고 안전한 파일명으로 변환"""
+    # 특수문자를 언더스코어로 대체
+    return re.sub(r'[<>:"/\\|?*]', '_', filename)
+
 def normalize_title(title: str) -> str:
     title = unicodedata.normalize("NFKC", title)
     title = title.lower().strip()
-    title = title.replace("’", "'").replace("‘", "'")
-    title = title.replace("“", '"').replace("”", '"')
+    title = title.replace("'", "'").replace("'", "'")
+    title = title.replace(""", '"').replace(""", '"')
     title = title.replace("–", "-").replace("—", "-")
     return ' '.join(title.split())
 
@@ -22,7 +28,7 @@ def similarity(a, b):
     return SequenceMatcher(None, normalize_title(a), normalize_title(b)).ratio()
 
 def load_cache(cache_dir: str, key: str) -> Optional[Dict]:
-    path = os.path.join(cache_dir, f"{key}.json")
+    path = os.path.join(cache_dir, f"{sanitize_filename(key)}.json")
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -30,7 +36,7 @@ def load_cache(cache_dir: str, key: str) -> Optional[Dict]:
 
 def save_cache(cache_dir: str, key: str, data: Dict) -> None:
     os.makedirs(cache_dir, exist_ok=True)
-    path = os.path.join(cache_dir, f"{key}.json")
+    path = os.path.join(cache_dir, f"{sanitize_filename(key)}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 

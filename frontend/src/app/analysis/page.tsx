@@ -35,7 +35,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const res = await fetch("http://localhost:8000/metadata");
+        const res = await fetch("http://localhost:8000/get_metadata");
         if (!res.ok) {
           throw new Error("Failed to fetch metadata");
         }
