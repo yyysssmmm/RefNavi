@@ -83,6 +83,10 @@ def extract_text_blocks(text: str) -> Dict[str, str]:
 
 # LLM 호출 (1단계)
 def call_llm_step1(block1: str, block3: str, model="gpt-4"):
+    # 🔍 block3에서 가장 큰 reference 번호 추정
+    ref_numbers = re.findall(r"\[(\d+)\]", block3)
+    max_ref_num = max(map(int, ref_numbers)) if ref_numbers else 0
+
     prompt = f"""
 [논문 정보 일부]
 - 논문 초반부 (제목/저자/abstract 포함): {block1}
@@ -93,7 +97,15 @@ def call_llm_step1(block1: str, block3: str, model="gpt-4"):
 2. abstract 내용은 수정하지 말고, 띄어쓰기와 문장 부호, 대소문자, 오탈자만 교정하여 abstract_original로 출력하세요. 절대 요약하거나 의미를 바꾸지 마세요.
 3. reference section에서 [1], [2], ... 형식의 reference 번호별로 각 논문의 제목만 추정해 출력하세요.
 
-⚠️ 반드시 JSON 형식으로만 출력하세요. 설명, 주석, 여는 말 없이 JSON만 출력해야 합니다.
+⚠️ 유의사항:
+- reference는 총 {max_ref_num}개여야 합니다. 즉, [1]부터 [{max_ref_num}]까지의 ref_number를 모두 포함해야 합니다.
+- 각 reference는 다음과 같은 형식으로 출력하세요:
+  {{
+    "ref_number": "[1]",
+    "ref_title": "..."
+  }}
+
+📌 출력은 반드시 JSON 형식으로만 출력하세요. 설명, 주석, 여는 말 없이 JSON만 출력해야 합니다.
 
 [출력 형식 예시]
 {{
@@ -103,7 +115,8 @@ def call_llm_step1(block1: str, block3: str, model="gpt-4"):
     {{
       "ref_number": "[1]",
       "ref_title": "..."
-    }}
+    }},
+    ...
   ]
 }}
 """
@@ -121,8 +134,9 @@ def call_llm_step2_chunk(chunk: str, model="gpt-4") -> Dict:
 {chunk}
 
 [당신의 임무]
-1. citation_contexts는 [1], [2], ... 형식의 reference 번호가 포함된 문장만 추출하여, 해당 번호별로 리스트로 구성하세요. 여러 문장이 있다면 모두 포함해야 합니다.
-2. body_fixed는 본문 내용을 그대로 유지하되, 띄어쓰기, 구두점, 대소문자, 오탈자만 교정하세요. 절대 의미를 바꾸지 마세요.
+1. citation_contexts는 [1], [2], ... 형식의 reference 번호가 포함된 문장만 추출하여, 해당 번호별로 리스트로 구성하세요.
+2. citation_contexts에는 반드시 하나 이상의 문장이 있어야 합니다. 빈 리스트가 되면 안 됩니다. (예: "[3]": ["..."])
+3. body_fixed는 본문 내용을 그대로 유지하되, 띄어쓰기, 구두점, 대소문자, 오탈자만 교정하세요. 절대 의미를 바꾸지 마세요.
 
 ⚠️ 반드시 JSON 형식으로만 출력하세요. 설명, 주석, 여는 말 없이 JSON만 출력해야 합니다.
 
