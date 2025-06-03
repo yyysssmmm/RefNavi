@@ -47,11 +47,37 @@
   text-decoration: underline !important;
   font-weight: 600 !important;
   transition: all 0.2s ease !important;
+  padding: 1px 2px !important;
+  border-radius: 2px !important;
+  background-color: transparent !important;
 }
 
 .citation-number:hover {
   color: #3730a3 !important;
   background-color: rgba(79, 70, 229, 0.1) !important;
+}
+
+/* PDF 텍스트 레이어 스타일 */
+.react-pdf__Page__textContent span {
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+/* 인용 번호가 포함된 텍스트 스팬 스타일 */
+.react-pdf__Page__textContent span[style*="color: rgb(79, 70, 229)"] {
+  color: #4f46e5 !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
   padding: 1px 2px !important;
   border-radius: 2px !important;
+  background-color: transparent !important;
+}
+
+.react-pdf__Page__textContent span[style*="color: rgb(79, 70, 229)"]:hover {
+  color: #3730a3 !important;
+  background-color: rgba(79, 70, 229, 0.1) !important;
 }

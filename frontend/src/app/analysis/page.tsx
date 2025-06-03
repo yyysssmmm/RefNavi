@@ -35,7 +35,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const res = await fetch("http://localhost:8000/metadata/get_metadata");
+        const res = await fetch("http://localhost:8000/metadata");
         if (!res.ok) {
           throw new Error("Failed to fetch metadata");
         }
@@ -82,12 +82,16 @@ export default function AnalysisPage() {
     const reference = analysisResult.references.find((ref) => {
       const refNumRaw = String(ref.ref_number); // 예: "[1]" 또는 "[1, 2]"
       
-      // 정규식으로 숫자들만 추출 → ex: [1, 2]
-      const matchedNumbers = refNumRaw.match(/\d+/g)?.map(Number) || [];
+      // 대괄호 안의 모든 숫자를 추출
+      const matches = refNumRaw.match(/\[(.*?)\]/);
+      if (!matches) return false;
+      
+      // 쉼표로 구분된 숫자들을 분리하고 숫자로 변환
+      const numbers = matches[1].split(',').map(num => parseInt(num.trim()));
+      
+      console.log(`📌 ${ref.ref_title} 의 ref_number 추출값:`, numbers);
 
-      console.log(`📌 ${ref.ref_title} 의 ref_number 추출값:`, matchedNumbers);
-
-      return matchedNumbers.includes(citationNumber);
+      return numbers.includes(citationNumber);
     });
 
     if (reference) {

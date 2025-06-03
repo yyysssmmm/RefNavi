@@ -72,63 +72,144 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
   }
 
   // 페이지 로드 성공 시 - 인용 번호 클릭 가능하게 만들기
-  function onPageLoadSuccess() {
+  function onPageLoadSuccess(page?: any) {
     if (!onCitationClick) return;
 
     console.log('페이지 로드 완료, 인용 번호 스캔 시작...');
 
-    // 짧은 지연 후 텍스트 스캔
-    setTimeout(() => {
-      const textElements = document.querySelectorAll('.react-pdf__Page__textContent span');
+    // PDF.js의 getTextContent로 텍스트 추출해서 콘솔에 출력
+    if (page && typeof page.getTextContent === 'function') {
+      page.getTextContent().then((textContent: any) => {
+        // TextItem만 추출
+        const allText = textContent.items
+          .filter((item: any) => 'str' in item)
+          .map((item: any) => item.str)
+          .join(' ');
+        console.log('[PDF 전체 텍스트]', allText);
+        
+        // 각 span의 정확한 내용을 디버깅
+        console.log('[PDF 텍스트 스팬 상세]', textContent.items.map((item: any) => ({
+          text: item.str,
+          hasSpace: item.str.includes(' '),
+          length: item.str.length
+        })));
+      });
+    }
+
+    // 텍스트 레이어가 완전히 렌더링될 때까지 대기
+    const checkTextLayer = () => {
+      const textElements = Array.from(document.querySelectorAll('.react-pdf__Page__textContent span'))
+        .filter(el => el.textContent?.trim() !== ''); // 공백만 있는 span 제외
+      
+      if (textElements.length === 0) {
+        setTimeout(checkTextLayer, 100); // 100ms 후 다시 시도
+        return;
+      }
+
       console.log('텍스트 요소 개수:', textElements.length);
-      
       let citationCount = 0;
+
+      // 연속된 span들을 하나의 텍스트로 결합하여 처리
+      let combinedText = '';
+      let combinedElements: HTMLElement[] = [];
       
-      textElements.forEach((element) => {
-        const htmlElement = element as HTMLElement;
-        const text = htmlElement.textContent || '';
+      for (let i = 0; i < textElements.length; i++) {
+        const el = textElements[i] as HTMLElement;
+        const text = el.textContent?.trim() || '';
+        if (!text) continue; // 공백만 있는 경우 건너뛰기
         
-        // [숫자] 또는 [숫자, 숫자] 패턴 찾기
-        const citationMatch = text.match(/\[(\d+(?:,\s*\d+)*)\]/);
-        
-        if (citationMatch) {
-          citationCount++;
-          const numbers = citationMatch[1].split(',').map(n => parseInt(n.trim()));
+        // 현재 span이 숫자만 포함하고 있고, 이전 span이 '['로 끝나고, 다음 span이 ']'로 시작하는 경우
+        if (/^\d+$/.test(text) && 
+            i > 0 && textElements[i-1].textContent?.trim().endsWith('[') && 
+            i < textElements.length - 1 && textElements[i+1].textContent?.trim().startsWith(']')) {
           
-          console.log('인용 번호 발견:', citationMatch[0], '→', numbers);
-          
-          // 요소를 클릭 가능하게 만들기
-          htmlElement.style.color = '#4f46e5';
-          htmlElement.style.cursor = 'pointer';
-          htmlElement.style.textDecoration = 'underline';
-          htmlElement.style.fontWeight = 'bold';
-          htmlElement.style.borderRadius = '2px';
-          htmlElement.style.padding = '1px 2px';
-          
-          htmlElement.addEventListener('click', (e) => {
+          const number = parseInt(text, 10);
+          el.style.color = '#4f46e5';
+          el.style.cursor = 'pointer';
+          el.style.textDecoration = 'underline';
+          el.style.fontWeight = 'bold';
+          el.style.borderRadius = '2px';
+          el.style.padding = '1px 2px';
+          el.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
-            // 첫 번째 인용 번호 클릭 이벤트 발생
-            if (numbers.length > 0) {
-              onCitationClick(numbers[0]);
-              console.log(`✅ 인용 번호 ${numbers[0]} 클릭됨!`);
-            }
-          });
-
-          // 호버 효과
-          htmlElement.addEventListener('mouseenter', () => {
-            htmlElement.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
-          });
-          
-          htmlElement.addEventListener('mouseleave', () => {
-            htmlElement.style.backgroundColor = 'transparent';
-          });
+            if (onCitationClick) onCitationClick(number);
+          };
+          el.onmouseenter = () => {
+            el.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
+          };
+          el.onmouseleave = () => {
+            el.style.backgroundColor = 'transparent';
+          };
+          citationCount++;
+          i += 1; // ']' span 건너뛰기
+          continue;
         }
+
+        // 일반 텍스트 처리
+        combinedText += text;
+        combinedElements.push(el);
+
+        // 공백이나 문장 부호로 끝나는 경우에만 처리
+        if (text.endsWith(' ') || text.endsWith('.') || text.endsWith(',') || text.endsWith(';')) {
+          // [숫자] 또는 [숫자, 숫자, ...] 패턴 찾기
+          const matches = [...combinedText.matchAll(/\[(\d+(?:,\s*\d+)*)\]/g)];
+          if (matches.length > 0) {
+            matches.forEach(match => {
+              const numbers = match[1].split(',').map(n => n.trim());
+              const startIndex = combinedText.indexOf(match[0]);
+              
+              // 해당 범위의 span들 찾기
+              let currentLength = 0;
+              for (let j = 0; j < combinedElements.length; j++) {
+                const spanText = combinedElements[j].textContent?.trim() || '';
+                if (!spanText) continue; // 공백만 있는 경우 건너뛰기
+                
+                const spanLength = spanText.length;
+                if (currentLength <= startIndex && startIndex < currentLength + spanLength) {
+                  // 인용 번호가 포함된 span 찾음
+                  const el = combinedElements[j] as HTMLElement;
+                  const originalText = el.textContent?.trim() || '';
+                  
+                  // 각 숫자를 클릭 가능한 span으로 대체
+                  let replaced = originalText;
+                  numbers.forEach(number => {
+                    const numStr = number.trim();
+                    if (replaced.includes(numStr)) {
+                      replaced = replaced.replace(
+                        numStr,
+                        `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;font-weight:bold;border-radius:2px;padding:1px 2px;" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}}))">${numStr}</span>`
+                      );
+                    }
+                  });
+                  
+                  if (replaced !== originalText) {
+                    el.innerHTML = replaced;
+                    citationCount += numbers.length;
+                  }
+                  break;
+                }
+                currentLength += spanLength;
+              }
+            });
+          }
+          
+          // 버퍼 초기화
+          combinedText = '';
+          combinedElements = [];
+        }
+      }
+
+      // 클릭 이벤트 위임(전역)
+      window.addEventListener('citationClick', (e: any) => {
+        if (onCitationClick) onCitationClick(e.detail);
       });
-      
+
       console.log(`총 ${citationCount}개의 인용 번호를 클릭 가능하게 만들었습니다.`);
-    }, 1000); // 더 긴 지연시간으로 안정성 확보
+    };
+
+    // 텍스트 레이어 체크 시작
+    setTimeout(checkTextLayer, 500);
   }
 
   if (!isVisible) return null;
