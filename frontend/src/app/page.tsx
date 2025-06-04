@@ -36,7 +36,7 @@ export default function HomePage() {
       {/* 헤더 */}
       <div className="header">
         <h1 className="main-title">Reference Navigator</h1>
-        <p className="main-subtitle">논문 참고문헌 분석 도구</p>
+        <p className="main-subtitle">논문 및 참고문헌 분석 도구</p>
       </div>
 
       {/* 메인 콘텐츠 - PDF 업로드 카드만 */}

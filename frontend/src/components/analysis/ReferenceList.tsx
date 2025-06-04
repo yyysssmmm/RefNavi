@@ -2,7 +2,8 @@
 
 import { Reference } from '@/types';
 import { formatAuthors } from '@/lib/utils';
-import { ExternalLink, Quote } from 'lucide-react';
+import { ExternalLink, Quote, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 interface ReferenceListProps {
   references: Reference[];
@@ -10,7 +11,63 @@ interface ReferenceListProps {
   onSelectReference: (reference: Reference) => void;
 }
 
+type SortType = 'default' | 'citations' | 'year';
+type SortOrder = 'asc' | 'desc';
+
 export default function ReferenceList({ references, selectedReference, onSelectReference }: ReferenceListProps) {
+  const [sortType, setSortType] = useState<SortType>('default');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const sortedReferences = useMemo(() => {
+    const refs = [...references];
+    if (sortType === 'default') return refs;
+
+    return refs.sort((a, b) => {
+      const valueA = sortType === 'citations' ? (a.citation_count || 0) : (a.year || 0);
+      const valueB = sortType === 'citations' ? (b.citation_count || 0) : (b.year || 0);
+      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB;
+    });
+  }, [references, sortType, sortOrder]);
+
+  const handleSort = (type: SortType) => {
+    if (sortType === type) {
+      if (sortOrder === 'desc') {
+        setSortOrder('asc');
+      } else {
+        setSortType('default');
+        setSortOrder('desc');
+      }
+    } else {
+      setSortType(type);
+      setSortOrder('desc');
+    }
+  };
+
+  const SortButton = ({ type, label }: { type: SortType; label: string }) => (
+    <button
+      onClick={() => handleSort(type)}
+      style={{
+        padding: '0.5rem',
+        background: sortType === type ? '#eef2ff' : 'white',
+        border: '1px solid #e5e7eb',
+        borderRadius: '0.375rem',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.25rem',
+        fontSize: '0.875rem',
+        color: sortType === type ? '#4f46e5' : '#6b7280'
+      }}
+    >
+      {sortType === type ? (
+        sortOrder === 'desc' ? <ArrowDown size={16} /> : <ArrowUp size={16} />
+      ) : (
+        <ArrowUpDown size={16} />
+      )}
+      {label}
+    </button>
+  );
+
   return (
     <div style={{ 
       height: '100%', 
@@ -34,10 +91,12 @@ export default function ReferenceList({ references, selectedReference, onSelectR
           인용된 논문 ({references.length})
         </h3>
         <div style={{
-          fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
-          color: '#6b7280'
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'center'
         }}>
-          클릭하여 상세 정보 보기
+          <SortButton type="citations" label="인용수" />
+          <SortButton type="year" label="발행년도" />
         </div>
       </div>
       
@@ -48,7 +107,7 @@ export default function ReferenceList({ references, selectedReference, onSelectR
         flexDirection: 'column',
         gap: 'clamp(0.5rem, 1vh, 0.75rem)'
       }}>
-        {references.map((reference) => (
+        {sortedReferences.map((reference) => (
           <div
             key={reference.ref_number}
             onClick={() => onSelectReference(reference)}
