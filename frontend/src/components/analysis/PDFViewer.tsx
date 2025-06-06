@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
 interface PDFViewerProps {
   pdfFile: PDFFile;
   isVisible: boolean;
-  onCitationClick?: (citationNumber: number) => void;
+  onCitationClick?: (citationNumber: number, contextSentences: string[]) => void;
 }
 
 export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFViewerProps) {
@@ -109,6 +109,22 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         return;
       }
 
+      // 문장 단위로 span을 그룹핑
+      const sentences: { text: string, spans: HTMLElement[] }[] = [];
+      let currentSentence = '';
+      let currentSpans: HTMLElement[] = [];
+      const sentenceEndRegex = /[.!?]\s*$/;
+      textElements.forEach((el, idx) => {
+        const t = el.textContent || '';
+        currentSentence += t;
+        currentSpans.push(el as HTMLElement);
+        if (sentenceEndRegex.test(t) || idx === textElements.length - 1) {
+          sentences.push({ text: currentSentence, spans: [...currentSpans] });
+          currentSentence = '';
+          currentSpans = [];
+        }
+      });
+
       // 1. 페이지 전체 텍스트 합치기
       const allText = textElements.map(el => el.textContent).join('');
 
@@ -121,7 +137,6 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         // 3. [] 안의 숫자 추출 (공백, 쉼표 등 무시)
         const numbers = match[1].split(',').map(n => n.replace(/\s/g, '')).filter(Boolean);
         refRanges.push({ start: match.index, end: match.index + match[0].length, numbers });
-        console.log(numbers)
       }
 
       // 4. 각 span의 시작/끝 인덱스 기록
@@ -130,7 +145,6 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         const text = el.textContent || '';
         const start = runningIdx;
         const end = runningIdx + text.length;
-        console.log(start, end)
         runningIdx = end;
         return { el, start, end, text };
       });
@@ -148,7 +162,7 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
             // 이미 span으로 감싸진 숫자는 제외하고, 숫자만 감쌈
             replaced = replaced.replace(
               new RegExp(`(?<!<span[^>]*?>)${numStr}(?![^<]*?</span>)`, 'g'),
-              `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;padding: 0px 1px;font-weight:bold;border-radius:2px;font-family:'Times New Roman',Times,serif;" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}}))">${numStr}</span>`
+              `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;padding: 0px 1px;font-weight:bold;border-radius:2px;font-family:'Times New Roman',Times,serif;" data-citation-number="${numStr}" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}, bubbles:true, composed:true, cancelable:true, extraSpanIdx:${spanRanges.findIndex(s => s.el === span.el)}}))">${numStr}</span>`
             );
           });
           if (replaced !== span.text) {
@@ -160,8 +174,21 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
 
       // 클릭 이벤트 위임(전역)
       window.addEventListener('citationClick', ((e: Event) => {
-        const customEvent = e as CustomEvent<number>;
-        if (onCitationClick) onCitationClick(customEvent.detail);
+        const customEvent = e as CustomEvent<any>;
+        const citationNumber = customEvent.detail;
+        // 클릭된 span의 인덱스 추출
+        let clickedSpanIdx = customEvent.extraSpanIdx;
+        if (typeof clickedSpanIdx !== 'number') {
+          // fallback: citationNumber가 포함된 첫 span 인덱스
+          clickedSpanIdx = spanRanges.findIndex(s => s.text.includes(String(citationNumber)));
+        }
+        // span이 속한 문장 인덱스 찾기
+        const sentenceIdx = sentences.findIndex(sen => sen.spans.some(sp => spanRanges[clickedSpanIdx]?.el === sp));
+        // 앞뒤 3문장 추출
+        const contextSentences = sentences.slice(Math.max(0, sentenceIdx - 3), sentenceIdx + 4).map(s => s.text);
+        console.log(contextSentences)
+        if (onCitationClick) onCitationClick(citationNumber, contextSentences);
+
       }) as EventListener);
 
       console.log(`총 ${citationCount}개의 인용 번호를 클릭 가능하게 만들었습니다.`);

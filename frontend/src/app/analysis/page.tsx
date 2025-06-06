@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usePDFStore } from '@/hooks/usePDFStore';
 import ReferenceList from '@/components/analysis/ReferenceList';
 import PDFViewer from '@/components/analysis/PDFViewer';
@@ -31,6 +31,23 @@ export default function AnalysisPage() {
   } = usePDFStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('none');
+
+  // Reference 타입을 analysisResult가 정의된 이후에 선언 (실제 타입 추론)
+  type Reference = NonNullable<typeof analysisResult>['references'][number];
+
+  const referenceMap = useMemo(() => {
+    const map = new Map<number, Reference>();
+    if (!analysisResult?.references) return map;
+    analysisResult.references.forEach(ref => {
+      const matches = String(ref.ref_number).match(/\[(.*?)\]/);
+      if (!matches) return;
+      const numbers = matches[1].split(',').map(num => parseInt(num.trim()));
+      numbers.forEach(num => {
+        map.set(num, ref);
+      });
+    });
+    return map;
+  }, [analysisResult?.references]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -79,20 +96,7 @@ export default function AnalysisPage() {
   ) => {
     console.log('🔎 클릭된 citationNumber:', citationNumber);
 
-    const reference = analysisResult.references.find((ref) => {
-      const refNumRaw = String(ref.ref_number); // 예: "[1]" 또는 "[1, 2]"
-      
-      // 대괄호 안의 모든 숫자를 추출
-      const matches = refNumRaw.match(/\[(.*?)\]/);
-      if (!matches) return false;
-      
-      // 쉼표로 구분된 숫자들을 분리하고 숫자로 변환
-      const numbers = matches[1].split(',').map(num => parseInt(num.trim()));
-      
-      console.log(`📌 ${ref.ref_title} 의 ref_number 추출값:`, numbers);
-
-      return numbers.includes(citationNumber);
-    });
+    const reference = referenceMap.get(citationNumber);
 
     if (reference) {
       setSelectedReference_second_tab(reference);
