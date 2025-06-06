@@ -121,6 +121,7 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         // 3. [] 안의 숫자 추출 (공백, 쉼표 등 무시)
         const numbers = match[1].split(',').map(n => n.replace(/\s/g, '')).filter(Boolean);
         refRanges.push({ start: match.index, end: match.index + match[0].length, numbers });
+        console.log(numbers)
       }
 
       // 4. 각 span의 시작/끝 인덱스 기록
@@ -129,6 +130,7 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         const text = el.textContent || '';
         const start = runningIdx;
         const end = runningIdx + text.length;
+        console.log(start, end)
         runningIdx = end;
         return { el, start, end, text };
       });
@@ -139,13 +141,14 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         const targetSpans = spanRanges.filter(
           span => !(span.end <= ref.start || span.start >= ref.end)
         );
-        // 각 span에서 숫자만 감싸기
+        // 각 span에서 숫자 또는 숫자가 아닌 부분으로 분리 (정규식)
         targetSpans.forEach(span => {
           let replaced = span.text;
           ref.numbers.forEach(numStr => {
+            // 이미 span으로 감싸진 숫자는 제외하고, 숫자만 감쌈
             replaced = replaced.replace(
-              new RegExp(numStr, 'g'),
-              `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;font-weight:bold;border-radius:2px;padding:1px 2px;" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}}))">${numStr}</span>`
+              new RegExp(`(?<!<span[^>]*?>)${numStr}(?![^<]*?</span>)`, 'g'),
+              `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;padding: 0px 1px;font-weight:bold;border-radius:2px;font-family:'Times New Roman',Times,serif;" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}}))">${numStr}</span>`
             );
           });
           if (replaced !== span.text) {
@@ -176,17 +179,17 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
       display: 'flex', 
       flexDirection: 'column',
       background: '#f8fafc',
-      borderRadius: 'clamp(6px, 1vw, 10px)',
+      borderRadius: '1vw',
       border: '1px solid #e5e7eb',
       overflow: 'hidden'
     }}>
       {/* 간단한 페이지 네비게이션 */}
       <div style={{
-        padding: 'clamp(0.5rem, 1vh, 0.75rem)',
+        padding: '1vh',
         background: 'white',
         borderBottom: '1px solid #e5e7eb',
         textAlign: 'center',
-        fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+        fontSize: '0.8vw',
         color: '#64748b'
       }}>
         페이지 {pageNumber} / {numPages || '...'}
@@ -229,7 +232,8 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         padding: '1rem',
         display: 'flex',
         justifyContent: 'center',
-        background: '#f8fafc'
+        background: '#f8fafc',
+        fontFamily: `'Times New Roman', Times, serif`
       }}>
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>

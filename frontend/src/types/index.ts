@@ -35,7 +35,7 @@ export interface AnalysisResult {
     sections: string[];
   };
 }
-''
+
 export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
