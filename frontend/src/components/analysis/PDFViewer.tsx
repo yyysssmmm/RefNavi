@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import type { PDFPageProxy, TextContent, TextItem } from 'pdfjs-dist/types/src/display/api';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { PDFFile } from '@/types';
@@ -72,27 +73,29 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
   }
 
   // 페이지 로드 성공 시 - 인용 번호 클릭 가능하게 만들기
-  function onPageLoadSuccess(page?: any) {
+  function onPageLoadSuccess(page?: PDFPageProxy) {
     if (!onCitationClick) return;
 
     console.log('페이지 로드 완료, 인용 번호 스캔 시작...');
 
     // PDF.js의 getTextContent로 텍스트 추출해서 콘솔에 출력
     if (page && typeof page.getTextContent === 'function') {
-      page.getTextContent().then((textContent: any) => {
+      page.getTextContent().then((textContent: TextContent) => {
         // TextItem만 추출
         const allText = textContent.items
-          .filter((item: any) => 'str' in item)
-          .map((item: any) => item.str)
+          .filter((item): item is TextItem => 'str' in item && 'fontName' in item)
+          .map((item) => item.str)
           .join(' ');
         console.log('[PDF 전체 텍스트]', allText);
         
         // 각 span의 정확한 내용을 디버깅
-        console.log('[PDF 텍스트 스팬 상세]', textContent.items.map((item: any) => ({
-          text: item.str,
-          hasSpace: item.str.includes(' '),
-          length: item.str.length
-        })));
+        console.log('[PDF 텍스트 스팬 상세]', textContent.items
+          .filter((item): item is TextItem => 'str' in item && 'fontName' in item)
+          .map((item) => ({
+            text: item.str,
+            hasSpace: item.str.includes(' '),
+            length: item.str.length
+          })));
       });
     }
 
@@ -201,9 +204,10 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
       }
 
       // 클릭 이벤트 위임(전역)
-      window.addEventListener('citationClick', (e: any) => {
-        if (onCitationClick) onCitationClick(e.detail);
-      });
+      window.addEventListener('citationClick', ((e: Event) => {
+        const customEvent = e as CustomEvent<number>;
+        if (onCitationClick) onCitationClick(customEvent.detail);
+      }) as EventListener);
 
       console.log(`총 ${citationCount}개의 인용 번호를 클릭 가능하게 만들었습니다.`);
     };
@@ -318,22 +322,6 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
             <div>PDF 파일을 읽을 수 없습니다</div>
           </div>
         )}
-      </div>
-
-      {/* 인용 클릭 안내 - PDF.js 모드일 때만 표시 */}
-      <div style={{
-        position: 'absolute',
-        top: 'clamp(1rem, 2vh, 1.5rem)',
-        right: 'clamp(1rem, 2vw, 1.5rem)',
-        background: 'rgba(34, 197, 94, 0.9)',
-        color: 'white',
-        padding: 'clamp(0.5rem, 1vh, 0.75rem) clamp(0.75rem, 1.5vw, 1rem)',
-        borderRadius: 'clamp(6px, 1vw, 8px)',
-        fontSize: 'clamp(0.75rem, 1.4vw, 0.875rem)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-        zIndex: 10
-      }}>
-        🎯 인용 번호 [1,2,3] 클릭 가능!
       </div>
     </div>
   );
