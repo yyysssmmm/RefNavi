@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { usePDFStore } from '@/hooks/usePDFStore';
 import ReferenceList from '@/components/analysis/ReferenceList';
 import PDFViewer from '@/components/analysis/PDFViewer';
@@ -27,7 +27,6 @@ export default function AnalysisPage() {
     addChatMessage,
     reset,
     isLoaded,
-    setAnalysisResult,
   } = usePDFStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('none');
@@ -51,28 +50,6 @@ export default function AnalysisPage() {
     });
     return map;
   }, [analysisResult?.references]);
-
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const res = await fetch("http://localhost:8000/get_metadata");
-        if (!res.ok) {
-          throw new Error("Failed to fetch metadata");
-        }
-        const data = await res.json();
-        console.log('📄 Metadata API Response:', data); // API 응답 확인
-        setAnalysisResult(data); // ✅ zustand 전역 상태 업데이트
-      } catch (err) {
-        console.error("🛑 메타데이터 로딩 실패:", err);
-      }
-    };
-
-    // analysisResult가 없을 때만 호출 (중복 방지)
-    if (isLoaded && currentPDF && !analysisResult) {
-      fetchMetadata();
-    }
-  }, [isLoaded, currentPDF, analysisResult, setAnalysisResult]);
-
 
   // 로딩 중이거나 데이터가 없는 경우 로딩 표시
   if (!isLoaded || !currentPDF || !analysisResult) {
@@ -124,8 +101,8 @@ export default function AnalysisPage() {
         // 2. abstract
         const abstract = reference.abstract || '';
         
-        // 3. full text (본문 텍스트)
-        const full_text = analysisResult?.body_fixed || '';
+        // 3. full text (본문 텍스트) - analysisResult의 body_fixed 사용
+        const full_text = analysisResult.body_fixed || '';
         
         console.log('Citation data:', {
           citationNumber,
@@ -133,11 +110,11 @@ export default function AnalysisPage() {
           localContext: contextSentences,
           allContexts: all_contexts,
           abstract,
-          fullTextLength: full_text.length // 전체 텍스트 길이 로깅
+          fullTextLength: full_text.length
         });
 
         // 4. API 호출
-        const response = await fetch('/api/get_citation_purpose', {
+        const response = await fetch('http://localhost:8000/get_citation_purpose', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -151,6 +128,11 @@ export default function AnalysisPage() {
           }),
         });
         if (!response.ok) throw new Error('API 요청 실패');
+        console.log('citationNumber', citationNumber);
+        console.log('contextSentenses', contextSentences);
+        console.log('all_contexts', all_contexts);
+        console.log('abstract', abstract);
+        console.log('full_text', full_text);
         const data = await response.json();
         setCitationPurpose(data.purpose);
       } catch (err: unknown) {

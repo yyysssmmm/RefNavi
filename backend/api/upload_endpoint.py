@@ -49,4 +49,5 @@ async def upload_pdf(file: UploadFile = File(...)):
         "abstract_original": data.get("abstract_original"),
         "abstract_llm": data.get("abstract_llm"),
         "references": data.get("references", []),
+        "body_fixed": data.get("body_fixed", ""),
     }
