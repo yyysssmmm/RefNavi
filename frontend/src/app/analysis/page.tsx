@@ -31,6 +31,9 @@ export default function AnalysisPage() {
   } = usePDFStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('none');
+  const [citationPurpose, setCitationPurpose] = useState<string | null>(null);
+  const [isPurposeLoading, setIsPurposeLoading] = useState(false);
+  const [purposeError, setPurposeError] = useState<string | null>(null);
 
   // Reference 타입을 analysisResult가 정의된 이후에 선언 (실제 타입 추론)
   type Reference = NonNullable<typeof analysisResult>['references'][number];
@@ -57,6 +60,7 @@ export default function AnalysisPage() {
           throw new Error("Failed to fetch metadata");
         }
         const data = await res.json();
+        console.log('📄 Metadata API Response:', data); // API 응답 확인
         setAnalysisResult(data); // ✅ zustand 전역 상태 업데이트
       } catch (err) {
         console.error("🛑 메타데이터 로딩 실패:", err);
@@ -90,8 +94,9 @@ export default function AnalysisPage() {
   };
 
   // 인용 번호 클릭 핸들러
-  const handleCitationClick = (
+  const handleCitationClick = async (
     citationNumber: number,
+    contextSentences: string[],
     options?: { clearReferences?: boolean; keepViewMode?: boolean }
   ) => {
     console.log('🔎 클릭된 citationNumber:', citationNumber);
@@ -103,6 +108,55 @@ export default function AnalysisPage() {
       if (!options?.keepViewMode) setViewMode('pdf');
       if (options?.clearReferences) setSelectedReference(null);
       console.log(`✅ 인용 번호 ${citationNumber} 클릭됨:`, reference.ref_title);
+
+      // Citation purpose 요청
+      setCitationPurpose(null);
+      setPurposeError(null);
+      setIsPurposeLoading(true);
+      try {
+        // 1. 모든 문맥 (reference의 citation_contexts에서 가져오기)
+        const all_contexts = reference.citation_contexts ? 
+          (typeof reference.citation_contexts === 'string' ? 
+            [reference.citation_contexts] : 
+            reference.citation_contexts) : 
+          [];
+        
+        // 2. abstract
+        const abstract = reference.abstract || '';
+        
+        // 3. full text (모든 citationContext의 sentence 합침)
+        const full_text = (analysisResult?.citations || [])
+          .map(c => c.sentence)
+          .join(' ');
+        
+        console.log('Citation data:', {
+          citationNumber,
+          refTitle: reference.ref_title,
+          localContext: contextSentences,
+          allContexts: all_contexts,
+          abstract
+        });
+
+        // 4. API 호출
+        const res = await fetch('http://localhost:8000/get_citation_purpose', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            citation_number: citationNumber,
+            local_context: contextSentences,
+            all_contexts,
+            abstract,
+            full_text
+          })
+        });
+        if (!res.ok) throw new Error('API 요청 실패');
+        const data = await res.json();
+        setCitationPurpose(data.purpose);
+      } catch (err: unknown) {
+        setPurposeError(err instanceof Error ? err.message : '오류 발생');
+      } finally {
+        setIsPurposeLoading(false);
+      }
     } else {
       console.warn(`❌ 인용 번호 ${citationNumber}에 해당하는 논문을 찾을 수 없습니다.`);
     }
@@ -193,8 +247,8 @@ export default function AnalysisPage() {
                 <PDFViewer
                   pdfFile={currentPDF}
                   isVisible={viewMode === 'pdf'}
-                  onCitationClick={(citationNumber) => {
-                    handleCitationClick(citationNumber, { clearReferences: true, keepViewMode: true });
+                  onCitationClick={(citationNumber, contextSentences) => {
+                    handleCitationClick(citationNumber, contextSentences, { clearReferences: true, keepViewMode: true });
                   }}
                 />
               </div>
@@ -345,6 +399,17 @@ export default function AnalysisPage() {
                         여기에 논문 정보가 나타납니다.
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {isPurposeLoading ? (
+                  <div style={{ marginTop: '1rem', color: '#4f46e5' }}>인용 목적 분석 중...</div>
+                ) : purposeError ? (
+                  <div style={{ marginTop: '1rem', color: 'red' }}>{purposeError}</div>
+                ) : citationPurpose && (
+                  <div style={{ marginTop: '1rem', background: '#eef2ff', padding: '1rem', borderRadius: '8px' }}>
+                    <strong>📌 Citation Purpose:</strong>
+                    <div style={{ marginTop: '0.5rem', color: '#1e293b' }}>{citationPurpose}</div>
                   </div>
                 )}
               </div>

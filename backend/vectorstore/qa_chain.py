@@ -31,7 +31,24 @@ VECTOR_DB_DIR = "chroma_db"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # ✅ 전역 embedding + vector DB 인스턴스
-embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+try:
+    print("🧠 HuggingFace 임베딩 모델 로딩 중...")
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+except Exception as e:
+    print(f"⚠️ HuggingFace 모델 로딩 실패: {str(e)}")
+    print("🔄 로컬 임베딩 모드로 전환...")
+    # 로컬 임베딩 모드 설정
+    os.environ["SENTENCE_TRANSFORMERS_HOME"] = "./models"
+    os.environ["TRANSFORMERS_CACHE"] = "./models"
+    try:
+        embeddings = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL,
+            cache_folder="./models",
+            model_kwargs={'device': 'cpu'}
+        )
+    except Exception as e:
+        print(f"❌ 로컬 임베딩 모드도 실패: {str(e)}")
+        raise RuntimeError("임베딩 모델을 로드할 수 없습니다. 인터넷 연결을 확인해주세요.")
 
 # ✅ QA 프롬프트 템플릿
 QA_TEMPLATE = """
