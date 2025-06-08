@@ -34,6 +34,7 @@ export interface AnalysisResult {
     totalCitations: number;
     sections: string[];
   };
+  body_fixed?: string;
 }
 
 export interface ChatMessage {

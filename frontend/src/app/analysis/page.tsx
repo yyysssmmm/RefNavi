@@ -124,33 +124,34 @@ export default function AnalysisPage() {
         // 2. abstract
         const abstract = reference.abstract || '';
         
-        // 3. full text (모든 citationContext의 sentence 합침)
-        const full_text = (analysisResult?.citations || [])
-          .map(c => c.sentence)
-          .join(' ');
+        // 3. full text (본문 텍스트)
+        const full_text = analysisResult?.body_fixed || '';
         
         console.log('Citation data:', {
           citationNumber,
           refTitle: reference.ref_title,
           localContext: contextSentences,
           allContexts: all_contexts,
-          abstract
+          abstract,
+          fullTextLength: full_text.length // 전체 텍스트 길이 로깅
         });
 
         // 4. API 호출
-        const res = await fetch('http://localhost:8000/get_citation_purpose', {
+        const response = await fetch('/api/get_citation_purpose', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             citation_number: citationNumber,
             local_context: contextSentences,
             all_contexts,
             abstract,
             full_text
-          })
+          }),
         });
-        if (!res.ok) throw new Error('API 요청 실패');
-        const data = await res.json();
+        if (!response.ok) throw new Error('API 요청 실패');
+        const data = await response.json();
         setCitationPurpose(data.purpose);
       } catch (err: unknown) {
         setPurposeError(err instanceof Error ? err.message : '오류 발생');
