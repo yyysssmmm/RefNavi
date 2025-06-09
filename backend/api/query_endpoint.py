@@ -27,26 +27,33 @@ class QueryResponse(BaseModel):
 
 # ✅ 메인 엔드포인트
 @router.post("/query", response_model=QueryResponse)
-
 def query_endpoint(request: QueryRequest):
     try:
         print(f"📥 받은 쿼리: {request.query}")
         
-        answer, source_docs = run_qa_chain(request.query, k=request.top_k, VECTOR_DB_DIR="../vectorstore/chroma_db", return_sources=True)
+        answer, source_docs = run_qa_chain(request.query, k=request.top_k, return_sources=True)
 
         sources = []
         for doc in source_docs:
             try:
+                # authors를 리스트로 변환
+                authors = doc.metadata.get("authors", "")
+                if isinstance(authors, str):
+                    authors = [author.strip() for author in authors.split(",") if author.strip()]
+                elif not isinstance(authors, list):
+                    authors = []
+
                 sources.append({
                     "title": doc.metadata.get("title", "제목 없음"),
                     "year": doc.metadata.get("year"),
-                    "authors": doc.metadata.get("authors", []),
+                    "authors": authors,  # 변환된 리스트 사용
                     "summary": doc.page_content[:300] + "..."
                 })
             except Exception as e:
                 print("⚠️ 소스 포맷 에러:", e)
                 sources.append({
                     "title": "Unknown",
+                    "authors": [],  # 빈 리스트로 초기화
                     "summary": str(doc)[:300]
                 })
 
