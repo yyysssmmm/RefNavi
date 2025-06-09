@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePDFStore } from '@/hooks/usePDFStore';
 import ReferenceList from '@/components/analysis/ReferenceList';
 import PDFViewer from '@/components/analysis/PDFViewer';
@@ -27,31 +27,29 @@ export default function AnalysisPage() {
     addChatMessage,
     reset,
     isLoaded,
-    setAnalysisResult,
   } = usePDFStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('none');
+  const [citationPurpose, setCitationPurpose] = useState<string | null>(null);
+  const [isPurposeLoading, setIsPurposeLoading] = useState(false);
+  const [purposeError, setPurposeError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const res = await fetch("http://localhost:8000/get_metadata");
-        if (!res.ok) {
-          throw new Error("Failed to fetch metadata");
-        }
-        const data = await res.json();
-        setAnalysisResult(data); // ✅ zustand 전역 상태 업데이트
-      } catch (err) {
-        console.error("🛑 메타데이터 로딩 실패:", err);
-      }
-    };
+  // Reference 타입을 analysisResult가 정의된 이후에 선언 (실제 타입 추론)
+  type Reference = NonNullable<typeof analysisResult>['references'][number];
 
-    // analysisResult가 없을 때만 호출 (중복 방지)
-    if (isLoaded && currentPDF && !analysisResult) {
-      fetchMetadata();
-    }
-  }, [isLoaded, currentPDF, analysisResult, setAnalysisResult]);
-
+  const referenceMap = useMemo(() => {
+    const map = new Map<number, Reference>();
+    if (!analysisResult?.references) return map;
+    analysisResult.references.forEach(ref => {
+      const matches = String(ref.ref_number).match(/\[(.*?)\]/);
+      if (!matches) return;
+      const numbers = matches[1].split(',').map(num => parseInt(num.trim()));
+      numbers.forEach(num => {
+        map.set(num, ref);
+      });
+    });
+    return map;
+  }, [analysisResult?.references]);
 
   // 로딩 중이거나 데이터가 없는 경우 로딩 표시
   if (!isLoaded || !currentPDF || !analysisResult) {
@@ -73,32 +71,75 @@ export default function AnalysisPage() {
   };
 
   // 인용 번호 클릭 핸들러
-  const handleCitationClick = (
+  const handleCitationClick = async (
     citationNumber: number,
+    contextSentences: string[],
     options?: { clearReferences?: boolean; keepViewMode?: boolean }
   ) => {
     console.log('🔎 클릭된 citationNumber:', citationNumber);
 
-    const reference = analysisResult.references.find((ref) => {
-      const refNumRaw = String(ref.ref_number); // 예: "[1]" 또는 "[1, 2]"
-      
-      // 대괄호 안의 모든 숫자를 추출
-      const matches = refNumRaw.match(/\[(.*?)\]/);
-      if (!matches) return false;
-      
-      // 쉼표로 구분된 숫자들을 분리하고 숫자로 변환
-      const numbers = matches[1].split(',').map(num => parseInt(num.trim()));
-      
-      console.log(`📌 ${ref.ref_title} 의 ref_number 추출값:`, numbers);
-
-      return numbers.includes(citationNumber);
-    });
+    const reference = referenceMap.get(citationNumber);
 
     if (reference) {
       setSelectedReference_second_tab(reference);
       if (!options?.keepViewMode) setViewMode('pdf');
       if (options?.clearReferences) setSelectedReference(null);
       console.log(`✅ 인용 번호 ${citationNumber} 클릭됨:`, reference.ref_title);
+
+      // Citation purpose 요청
+      setCitationPurpose(null);
+      setPurposeError(null);
+      setIsPurposeLoading(true);
+      try {
+        // 1. 모든 문맥 (reference의 citation_contexts에서 가져오기)
+        const all_contexts = reference.citation_contexts ? 
+          (typeof reference.citation_contexts === 'string' ? 
+            [reference.citation_contexts] : 
+            reference.citation_contexts) : 
+          [];
+        
+        // 2. abstract
+        const abstract = reference.abstract || '';
+        
+        // 3. full text (본문 텍스트) - analysisResult의 body_fixed 사용
+        const full_text = analysisResult.body_fixed || '';
+        
+        console.log('Citation data:', {
+          citationNumber,
+          refTitle: reference.ref_title,
+          localContext: contextSentences,
+          allContexts: all_contexts,
+          abstract,
+          fullTextLength: full_text.length
+        });
+
+        // 4. API 호출
+        const response = await fetch('http://localhost:8000/get_citation_purpose', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            citation_number: citationNumber,
+            local_context: contextSentences,
+            all_contexts,
+            abstract,
+            full_text
+          }),
+        });
+        if (!response.ok) throw new Error('API 요청 실패');
+        console.log('citationNumber', citationNumber);
+        console.log('contextSentenses', contextSentences);
+        console.log('all_contexts', all_contexts);
+        console.log('abstract', abstract);
+        console.log('full_text', full_text);
+        const data = await response.json();
+        setCitationPurpose(data.purpose);
+      } catch (err: unknown) {
+        setPurposeError(err instanceof Error ? err.message : '오류 발생');
+      } finally {
+        setIsPurposeLoading(false);
+      }
     } else {
       console.warn(`❌ 인용 번호 ${citationNumber}에 해당하는 논문을 찾을 수 없습니다.`);
     }
@@ -189,8 +230,8 @@ export default function AnalysisPage() {
                 <PDFViewer
                   pdfFile={currentPDF}
                   isVisible={viewMode === 'pdf'}
-                  onCitationClick={(citationNumber) => {
-                    handleCitationClick(citationNumber, { clearReferences: true, keepViewMode: true });
+                  onCitationClick={(citationNumber, contextSentences) => {
+                    handleCitationClick(citationNumber, contextSentences, { clearReferences: true, keepViewMode: true });
                   }}
                 />
               </div>
@@ -200,7 +241,7 @@ export default function AnalysisPage() {
             <div className="content-card">
               <div className="card-header">
                 <Search className="card-icon" />
-                <h2 className="card-title">논문 정보</h2>
+                <h2 className="card-title" >논문 정보</h2>
               </div>
               
               <div style={{ 
@@ -211,17 +252,17 @@ export default function AnalysisPage() {
               }}>
                 {selectedReference_second_tab ? (
                   <div style={{
-                    padding: 'clamp(1rem, 2vh, 1.5rem)',
+                    padding: '1rem',
                     background: '#f8fafc',
-                    borderRadius: 'clamp(8px, 1vw, 12px)',
+                    borderRadius: '8px',
                     border: '2px solid #4f46e5'
                   }}>
                     <div style={{
-                      marginBottom: 'clamp(1rem, 2vh, 1.5rem)',
-                      padding: 'clamp(0.5rem, 1vh, 0.75rem)',
+                      marginBottom: '1rem',
+                      padding: '0.5rem',
                       background: '#4f46e5',
                       color: 'white',
-                      borderRadius: 'clamp(6px, 1vw, 8px)',
+                      borderRadius: '6px',
                       textAlign: 'center',
                       fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
                       fontWeight: 600
@@ -230,22 +271,22 @@ export default function AnalysisPage() {
                     </div>
 
                     <h3 style={{
-                      fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+                      fontSize: '1.25rem',
                       fontWeight: 700,
                       color: '#1e293b',
-                      margin: '0 0 clamp(0.75rem, 1.5vh, 1rem) 0',
+                      margin: '0 0 1rem 0',
                       lineHeight: 1.3
                     }}>
                       {selectedReference_second_tab.ref_title}
                     </h3>
                     
                     <div style={{
-                      marginBottom: 'clamp(1rem, 2vh, 1.5rem)'
+                      marginBottom: '1rem'
                     }}>
                       <p style={{
-                        fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                        fontSize: '1rem',
                         color: '#475569',
-                        margin: '0 0 clamp(0.5rem, 1vh, 0.75rem) 0',
+                        margin: '0 0 0.75rem 0',
                         fontWeight: 500
                       }}>
                         👥 {selectedReference_second_tab.authors.join(', ')}
@@ -253,9 +294,9 @@ export default function AnalysisPage() {
                       
                       <div style={{
                         display: 'flex',
-                        gap: 'clamp(1rem, 2vw, 1.5rem)',
+                        gap: '1.5rem',
                         flexWrap: 'wrap',
-                        fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
+                        fontSize: '0.9rem',
                         color: '#64748b'
                       }}>
                         <span>📅 {selectedReference_second_tab.year}</span>
@@ -266,20 +307,20 @@ export default function AnalysisPage() {
 
                     <div style={{
                       background: 'white',
-                      padding: 'clamp(1rem, 2vh, 1.5rem)',
-                      borderRadius: 'clamp(6px, 1vw, 8px)',
+                      padding: '1rem',
+                      borderRadius: '6px',
                       border: '1px solid #e5e7eb'
                     }}>
                       <h4 style={{
-                        fontSize: 'clamp(0.875rem, 1.8vw, 1rem)',
+                        fontSize: '1rem',
                         fontWeight: 600,
                         color: '#374151',
-                        margin: '0 0 clamp(0.5rem, 1vh, 0.75rem) 0'
+                        margin: '0 0 0.75rem 0'
                       }}>
                         📝 초록
                       </h4>
                       <p style={{
-                        fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
+                        fontSize: '0.9rem',
                         color: '#4b5563',
                         lineHeight: 1.6,
                         margin: 0
@@ -289,7 +330,7 @@ export default function AnalysisPage() {
                     </div>
 
                     <div style={{
-                      marginTop: 'clamp(1rem, 2vh, 1.5rem)',
+                      marginTop: '1rem',
                       textAlign: 'center'
                     }}>
                       <button 
@@ -341,6 +382,17 @@ export default function AnalysisPage() {
                         여기에 논문 정보가 나타납니다.
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {isPurposeLoading ? (
+                  <div style={{ marginTop: '1rem', color: '#4f46e5' }}>인용 목적 분석 중...</div>
+                ) : purposeError ? (
+                  <div style={{ marginTop: '1rem', color: 'red' }}>{purposeError}</div>
+                ) : citationPurpose && (
+                  <div style={{ marginTop: '1rem', background: '#eef2ff', padding: '1rem', borderRadius: '8px' }}>
+                    <strong>📌 Citation Purpose:</strong>
+                    <div style={{ marginTop: '0.5rem', color: '#1e293b' }}>{citationPurpose}</div>
                   </div>
                 )}
               </div>
@@ -439,9 +491,8 @@ export default function AnalysisPage() {
       {/* 메인 콘텐츠 - 3단 레이아웃 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: viewMode === 'pdf' ? '180px 2fr 3fr' : '180px 1fr',
-        gap: 'clamp(1.5rem, 3vw, 2rem)',
-        maxWidth: 'min(98vw, 1600px)',
+        gridTemplateColumns: viewMode === 'pdf' ? '120px 700px 3fr' : '120px 1fr',
+        gap: '10px',
         margin: '0 auto',
         width: '100%',
         height: 'calc(100vh - 180px)'
@@ -451,7 +502,7 @@ export default function AnalysisPage() {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(0.75rem, 1.5vh, 1rem)'
+          gap: '10px'
         }}>
           
           {/* 참고문헌 목록 버튼 */}
@@ -460,8 +511,8 @@ export default function AnalysisPage() {
             style={{
               background: viewMode === 'references' ? '#eef2ff' : 'white',
               border: viewMode === 'references' ? '2px solid #4f46e5' : '1px solid #e5e7eb',
-              borderRadius: 'clamp(6px, 1vw, 10px)',
-              padding: 'clamp(0.75rem, 1.5vh, 1rem)',
+              borderRadius: '6px',
+              padding: '10px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               boxShadow: viewMode === 'references' 
@@ -470,7 +521,7 @@ export default function AnalysisPage() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 'clamp(0.4rem, 0.8vh, 0.6rem)',
+              gap: '5px',
               textAlign: 'center'
             }}
             onMouseEnter={(e) => {
@@ -489,22 +540,22 @@ export default function AnalysisPage() {
             }}
           >
             <BookOpen style={{
-              width: 'clamp(18px, 2.5vw, 24px)',
-              height: 'clamp(18px, 2.5vw, 24px)',
+              width: '30px',
+              height: '30px',
               color: viewMode === 'references' ? '#4f46e5' : '#64748b'
             }} />
             <div>
               <h3 style={{
-                fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+                fontSize: '15px',
                 fontWeight: 600,
                 color: viewMode === 'references' ? '#4f46e5' : '#111827',
-                margin: '0 0 clamp(0.2rem, 0.4vh, 0.3rem) 0',
+                margin: '0 0 5px 0',
                 lineHeight: 1.2
               }}>
                 참고문헌
               </h3>
               <p style={{
-                fontSize: 'clamp(0.7rem, 1.2vw, 0.8rem)',
+                fontSize: '13px',
                 color: '#64748b',
                 margin: 0,
                 lineHeight: 1.3
@@ -520,8 +571,8 @@ export default function AnalysisPage() {
             style={{
               background: viewMode === 'pdf' ? '#eef2ff' : 'white',
               border: viewMode === 'pdf' ? '2px solid #4f46e5' : '1px solid #e5e7eb',
-              borderRadius: 'clamp(6px, 1vw, 10px)',
-              padding: 'clamp(0.75rem, 1.5vh, 1rem)',
+              borderRadius: '6px',
+              padding: '10px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               boxShadow: viewMode === 'pdf' 
@@ -530,7 +581,7 @@ export default function AnalysisPage() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 'clamp(0.4rem, 0.8vh, 0.6rem)',
+              gap: '5px',
               textAlign: 'center'
             }}
             onMouseEnter={(e) => {
@@ -549,22 +600,22 @@ export default function AnalysisPage() {
             }}
           >
             <Search style={{
-              width: 'clamp(18px, 2.5vw, 24px)',
-              height: 'clamp(18px, 2.5vw, 24px)',
+              width: '30px',
+              height: '30px',
               color: viewMode === 'pdf' ? '#4f46e5' : '#64748b'
             }} />
             <div>
               <h3 style={{
-                fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+                fontSize: '15px',
                 fontWeight: 600,
                 color: viewMode === 'pdf' ? '#4f46e5' : '#111827',
-                margin: '0 0 clamp(0.2rem, 0.4vh, 0.3rem) 0',
+                margin: '0 0 5px 0',
                 lineHeight: 1.2
               }}>
                 인용분석
               </h3>
               <p style={{
-                fontSize: 'clamp(0.7rem, 1.2vw, 0.8rem)',
+                fontSize: '13px',
                 color: '#64748b',
                 margin: 0,
                 lineHeight: 1.3

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import type { PDFPageProxy, TextContent, TextItem } from 'pdfjs-dist/types/src/display/api';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { PDFFile } from '@/types';
@@ -16,7 +17,7 @@ if (typeof window !== 'undefined') {
 interface PDFViewerProps {
   pdfFile: PDFFile;
   isVisible: boolean;
-  onCitationClick?: (citationNumber: number) => void;
+  onCitationClick?: (citationNumber: number, contextSentences: string[]) => void;
 }
 
 export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFViewerProps) {
@@ -72,27 +73,29 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
   }
 
   // 페이지 로드 성공 시 - 인용 번호 클릭 가능하게 만들기
-  function onPageLoadSuccess(page?: any) {
+  function onPageLoadSuccess(page?: PDFPageProxy) {
     if (!onCitationClick) return;
 
     console.log('페이지 로드 완료, 인용 번호 스캔 시작...');
 
     // PDF.js의 getTextContent로 텍스트 추출해서 콘솔에 출력
     if (page && typeof page.getTextContent === 'function') {
-      page.getTextContent().then((textContent: any) => {
+      page.getTextContent().then((textContent: TextContent) => {
         // TextItem만 추출
         const allText = textContent.items
-          .filter((item: any) => 'str' in item)
-          .map((item: any) => item.str)
+          .filter((item): item is TextItem => 'str' in item && 'fontName' in item)
+          .map((item) => item.str)
           .join(' ');
         console.log('[PDF 전체 텍스트]', allText);
         
         // 각 span의 정확한 내용을 디버깅
-        console.log('[PDF 텍스트 스팬 상세]', textContent.items.map((item: any) => ({
-          text: item.str,
-          hasSpace: item.str.includes(' '),
-          length: item.str.length
-        })));
+        console.log('[PDF 텍스트 스팬 상세]', textContent.items
+          .filter((item): item is TextItem => 'str' in item && 'fontName' in item)
+          .map((item) => ({
+            text: item.str,
+            hasSpace: item.str.includes(' '),
+            length: item.str.length
+          })));
       });
     }
 
@@ -100,110 +103,93 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
     const checkTextLayer = () => {
       const textElements = Array.from(document.querySelectorAll('.react-pdf__Page__textContent span'))
         .filter(el => el.textContent?.trim() !== ''); // 공백만 있는 span 제외
-      
+
       if (textElements.length === 0) {
         setTimeout(checkTextLayer, 100); // 100ms 후 다시 시도
         return;
       }
 
-      console.log('텍스트 요소 개수:', textElements.length);
+      // 문장 단위로 span을 그룹핑
+      const sentences: { text: string, spans: HTMLElement[] }[] = [];
+      let currentSentence = '';
+      let currentSpans: HTMLElement[] = [];
+      const sentenceEndRegex = /[.!?]\s*$/;
+      textElements.forEach((el, idx) => {
+        const t = el.textContent || '';
+        currentSentence += t;
+        currentSpans.push(el as HTMLElement);
+        if (sentenceEndRegex.test(t) || idx === textElements.length - 1) {
+          sentences.push({ text: currentSentence, spans: [...currentSpans] });
+          currentSentence = '';
+          currentSpans = [];
+        }
+      });
+
+      // 1. 페이지 전체 텍스트 합치기
+      const allText = textElements.map(el => el.textContent).join('');
+
+      // 2. [] 쌍 찾기
+      const refPattern = /\[(.*?)\]/g;
+      let match;
       let citationCount = 0;
-
-      // 연속된 span들을 하나의 텍스트로 결합하여 처리
-      let combinedText = '';
-      let combinedElements: HTMLElement[] = [];
-      
-      for (let i = 0; i < textElements.length; i++) {
-        const el = textElements[i] as HTMLElement;
-        const text = el.textContent?.trim() || '';
-        if (!text) continue; // 공백만 있는 경우 건너뛰기
-        
-        // 현재 span이 숫자만 포함하고 있고, 이전 span이 '['로 끝나고, 다음 span이 ']'로 시작하는 경우
-        if (/^\d+$/.test(text) && 
-            i > 0 && textElements[i-1].textContent?.trim().endsWith('[') && 
-            i < textElements.length - 1 && textElements[i+1].textContent?.trim().startsWith(']')) {
-          
-          const number = parseInt(text, 10);
-          el.style.color = '#4f46e5';
-          el.style.cursor = 'pointer';
-          el.style.textDecoration = 'underline';
-          el.style.fontWeight = 'bold';
-          el.style.borderRadius = '2px';
-          el.style.padding = '1px 2px';
-          el.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (onCitationClick) onCitationClick(number);
-          };
-          el.onmouseenter = () => {
-            el.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
-          };
-          el.onmouseleave = () => {
-            el.style.backgroundColor = 'transparent';
-          };
-          citationCount++;
-          i += 1; // ']' span 건너뛰기
-          continue;
-        }
-
-        // 일반 텍스트 처리
-        combinedText += text;
-        combinedElements.push(el);
-
-        // 공백이나 문장 부호로 끝나는 경우에만 처리
-        if (text.endsWith(' ') || text.endsWith('.') || text.endsWith(',') || text.endsWith(';')) {
-          // [숫자] 또는 [숫자, 숫자, ...] 패턴 찾기
-          const matches = [...combinedText.matchAll(/\[(\d+(?:,\s*\d+)*)\]/g)];
-          if (matches.length > 0) {
-            matches.forEach(match => {
-              const numbers = match[1].split(',').map(n => n.trim());
-              const startIndex = combinedText.indexOf(match[0]);
-              
-              // 해당 범위의 span들 찾기
-              let currentLength = 0;
-              for (let j = 0; j < combinedElements.length; j++) {
-                const spanText = combinedElements[j].textContent?.trim() || '';
-                if (!spanText) continue; // 공백만 있는 경우 건너뛰기
-                
-                const spanLength = spanText.length;
-                if (currentLength <= startIndex && startIndex < currentLength + spanLength) {
-                  // 인용 번호가 포함된 span 찾음
-                  const el = combinedElements[j] as HTMLElement;
-                  const originalText = el.textContent?.trim() || '';
-                  
-                  // 각 숫자를 클릭 가능한 span으로 대체
-                  let replaced = originalText;
-                  numbers.forEach(number => {
-                    const numStr = number.trim();
-                    if (replaced.includes(numStr)) {
-                      replaced = replaced.replace(
-                        numStr,
-                        `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;font-weight:bold;border-radius:2px;padding:1px 2px;" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}}))">${numStr}</span>`
-                      );
-                    }
-                  });
-                  
-                  if (replaced !== originalText) {
-                    el.innerHTML = replaced;
-                    citationCount += numbers.length;
-                  }
-                  break;
-                }
-                currentLength += spanLength;
-              }
-            });
-          }
-          
-          // 버퍼 초기화
-          combinedText = '';
-          combinedElements = [];
-        }
+      const refRanges: { start: number, end: number, numbers: string[] }[] = [];
+      while ((match = refPattern.exec(allText)) !== null) {
+        // 3. [] 안의 숫자 추출 (공백, 쉼표 등 무시)
+        const numbers = match[1].split(',').map(n => n.replace(/\s/g, '')).filter(Boolean);
+        refRanges.push({ start: match.index, end: match.index + match[0].length, numbers });
       }
 
-      // 클릭 이벤트 위임(전역)
-      window.addEventListener('citationClick', (e: any) => {
-        if (onCitationClick) onCitationClick(e.detail);
+      // 4. 각 span의 시작/끝 인덱스 기록
+      let runningIdx = 0;
+      const spanRanges = textElements.map(el => {
+        const text = el.textContent || '';
+        const start = runningIdx;
+        const end = runningIdx + text.length;
+        runningIdx = end;
+        return { el, start, end, text };
       });
+
+      // 5. 각 reference에 대해 해당하는 span에 스타일/이벤트 부여
+      refRanges.forEach(ref => {
+        // reference가 걸쳐 있는 span 모두 찾기
+        const targetSpans = spanRanges.filter(
+          span => !(span.end <= ref.start || span.start >= ref.end)
+        );
+        // 각 span에서 숫자 또는 숫자가 아닌 부분으로 분리 (정규식)
+        targetSpans.forEach(span => {
+          let replaced = span.text;
+          ref.numbers.forEach(numStr => {
+            // 이미 span으로 감싸진 숫자는 제외하고, 숫자만 감쌈
+            replaced = replaced.replace(
+              new RegExp(`(?<!<span[^>]*?>)${numStr}(?![^<]*?</span>)`, 'g'),
+              `<span style="color:#4f46e5;cursor:pointer;text-decoration:underline;padding: 0px 1px;font-weight:bold;border-radius:2px;font-family:'Times New Roman',Times,serif;" data-citation-number="${numStr}" onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('citationClick',{detail:${numStr}, bubbles:true, composed:true, cancelable:true, extraSpanIdx:${spanRanges.findIndex(s => s.el === span.el)}}))">${numStr}</span>`
+            );
+          });
+          if (replaced !== span.text) {
+            span.el.innerHTML = replaced;
+            citationCount += ref.numbers.length;
+          }
+        });
+      });
+
+      // 클릭 이벤트 위임(전역)
+      window.addEventListener('citationClick', ((e: Event) => {
+        const customEvent = e as CustomEvent<any>;
+        const citationNumber = customEvent.detail;
+        // 클릭된 span의 인덱스 추출
+        let clickedSpanIdx = customEvent.extraSpanIdx;
+        if (typeof clickedSpanIdx !== 'number') {
+          // fallback: citationNumber가 포함된 첫 span 인덱스
+          clickedSpanIdx = spanRanges.findIndex(s => s.text.includes(String(citationNumber)));
+        }
+        // span이 속한 문장 인덱스 찾기
+        const sentenceIdx = sentences.findIndex(sen => sen.spans.some(sp => spanRanges[clickedSpanIdx]?.el === sp));
+        // 앞뒤 3문장 추출
+        const contextSentences = sentences.slice(Math.max(0, sentenceIdx - 3), sentenceIdx + 4).map(s => s.text);
+        console.log(contextSentences)
+        if (onCitationClick) onCitationClick(citationNumber, contextSentences);
+
+      }) as EventListener);
 
       console.log(`총 ${citationCount}개의 인용 번호를 클릭 가능하게 만들었습니다.`);
     };
@@ -220,17 +206,17 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
       display: 'flex', 
       flexDirection: 'column',
       background: '#f8fafc',
-      borderRadius: 'clamp(6px, 1vw, 10px)',
+      borderRadius: '1vw',
       border: '1px solid #e5e7eb',
       overflow: 'hidden'
     }}>
       {/* 간단한 페이지 네비게이션 */}
       <div style={{
-        padding: 'clamp(0.5rem, 1vh, 0.75rem)',
+        padding: '1vh',
         background: 'white',
         borderBottom: '1px solid #e5e7eb',
         textAlign: 'center',
-        fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+        fontSize: '0.8vw',
         color: '#64748b'
       }}>
         페이지 {pageNumber} / {numPages || '...'}
@@ -273,7 +259,8 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         padding: '1rem',
         display: 'flex',
         justifyContent: 'center',
-        background: '#f8fafc'
+        background: '#f8fafc',
+        fontFamily: `'Times New Roman', Times, serif`
       }}>
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
@@ -318,22 +305,6 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
             <div>PDF 파일을 읽을 수 없습니다</div>
           </div>
         )}
-      </div>
-
-      {/* 인용 클릭 안내 - PDF.js 모드일 때만 표시 */}
-      <div style={{
-        position: 'absolute',
-        top: 'clamp(1rem, 2vh, 1.5rem)',
-        right: 'clamp(1rem, 2vw, 1.5rem)',
-        background: 'rgba(34, 197, 94, 0.9)',
-        color: 'white',
-        padding: 'clamp(0.5rem, 1vh, 0.75rem) clamp(0.75rem, 1.5vw, 1rem)',
-        borderRadius: 'clamp(6px, 1vw, 8px)',
-        fontSize: 'clamp(0.75rem, 1.4vw, 0.875rem)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-        zIndex: 10
-      }}>
-        🎯 인용 번호 [1,2,3] 클릭 가능!
       </div>
     </div>
   );
