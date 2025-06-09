@@ -64,7 +64,7 @@ Provide a clear and concise analysis in Korean, focusing on the academic signifi
                 json={
                     "model": "sonar-pro",
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 500
+                    "max_tokens": 1000
                 },
                 timeout=30.0
             )
