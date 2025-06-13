@@ -5,7 +5,10 @@ from .loader import load_metadata_as_documents
 
 # ✅ 설정값
 JSON_PATH = "../utils/integrated_metadata.json"  # 입력 메타데이터 위치
-VECTOR_DB_DIR = "chroma_db"                      # 벡터 DB 저장 경로
+
+# 현재 파일 위치 기준 절대 경로 설정
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+VECTOR_DB_DIR = os.path.join(BASE_DIR, "chroma_db")
 
 import shutil
 
