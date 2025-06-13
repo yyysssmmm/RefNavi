@@ -1,76 +1,76 @@
-import sys
-import os
-
-# 🔧 경로 설정
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 
-# ✅ 기존 vector / graph QA 로직 import
-from vectorstore.qa_chain import run_qa_chain  # VectorRAG 함수
-from graphdb.graph_qa import chain as graph_chain  # GraphRAG 체인
+from vectorstore.qa_chain import run_qa_chain
+from graphdb.graph_qa import chain as graph_chain
+
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 base_dir = os.path.join(os.path.dirname(__file__), "../utils/metadata")
 VECTOR_DB_DIR = os.path.join(base_dir, "chroma_db")
 
-# ✅ 하이브리드 응답 생성 LLM
 llm = ChatOpenAI(model="gpt-4", temperature=0)
 
-# ✅ 벡터/그래프 응답 통합 프롬프트
-prompt = ChatPromptTemplate.from_messages([
-    ("system",
-     "You are a scientific assistant who integrates and refines two candidate answers to a user question using clear and concise language.\n\n"
-     "You are given two answers to the same question:\n\n"
-     ">>> Answer A (from Vector DB):\n{vector_answer}\n\n"
-     ">>> Answer B (from Graph DB):\n{graph_answer}\n\n"
-     "Your task is to:\n"
-     "1. Carefully analyze both answers.\n"
-     "2. Write a single, polished and informative answer to the user that:\n"
-     "   - prioritizes the most accurate and relevant information,\n"
-     "   - avoids repetition or conflicting information,\n"
-     "   - avoids directly stitching the two answers together awkwardly,\n"
-     "   - reads naturally as a unified answer.\n"
-     "3. If both answers are useful, integrate them. If only one is good, use that one. If neither is helpful, say that.\n\n"
-     "📌 At the end of your response, write on a separate line which answer contributed most:\n"
-     "   - [Mainly from Vector DB], [Mainly from Graph DB], or [Combined equally]\n"
-     "   - Do not say 'Both' unless both provided distinct and meaningful content."
-    )
-])
-
-
-# ✅ Graph QA 실패 대비
 def safe_graph_invoke(question: str) -> str:
     try:
         result = graph_chain.invoke({"query": question})
         return result.get("result", "")
     except Exception as e:
         print(f"⚠️ Graph QA failed: {e}")
-        return "Graph QA failed to return an answer."
+        return ""
 
-# ✅ 하이브리드 QA 함수
-def hybrid_qa(question: str, vector_db_dir=VECTOR_DB_DIR, k: int = 3):
+def hybrid_qa(question: str, vector_db_dir=VECTOR_DB_DIR, k: int = 3, return_sources=False, chat_history=None):
     print(f"\n💬 질문: {question}")
     
     # Vector DB 응답
-    vector_answer, _ = run_qa_chain(question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=True)
+    vector_answer, sources = run_qa_chain(question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=return_sources)
 
     # Graph DB 응답
     graph_answer = safe_graph_invoke(question)
 
-    # 통합 응답 생성
+    # 🔁 이전 대화 반영 메시지 구성
+    messages = chat_history[:] if chat_history else []
+
+    messages.append(
+        ("system",
+        "You are a helpful assistant. The user may ask in any language, and you must respond in that same language.\n\n"
+        "You are given two optional answers to assist you:\n"
+        "- Answer A (from Vector DB): {vector_answer}\n"
+        "- Answer B (from Graph DB): {graph_answer}\n\n"
+        "Your job is to answer the user's question based on:\n"
+        "1. These retrieved answers **if relevant**, or\n"
+        "2. Your own knowledge **if the retrieved answers are empty or unrelated**.\n\n"
+        "⚠️ Do NOT say 'I was given two answers'. Simply answer naturally as if you know the information.\n\n"
+        "📌 At the end of your response, add one of the following lines to indicate the main source:\n"
+        "- [Answer Source: Vector DB]\n"
+        "- [Answer Source: Graph DB]\n"
+        "- [Answer Source: Own Knowledge]\n"
+        "- [Answer Source: Combined]"
+        )
+    )
+
+
+    messages.append(HumanMessage(content=question))
+
+    prompt = ChatPromptTemplate.from_messages(messages)
+
     final_chain = prompt | llm | StrOutputParser()
-    final_response = final_chain.invoke({
+
+    response = final_chain.invoke({
         "question": question,
         "vector_answer": vector_answer,
         "graph_answer": graph_answer
     })
 
+    # 🧾 히스토리 반영
+    if chat_history is not None:
+        chat_history.append(HumanMessage(content=question))
+        chat_history.append(AIMessage(content=response))
+
     print("\n📌 Hybrid QA Result:")
-    print(final_response)
-
-
-# ✅ 테스트 실행
-if __name__ == "__main__":
-    hybrid_qa("Who proposed the LSTM model?")
+    print(response)
+    return (response, sources) if return_sources else (response, [])

@@ -2,6 +2,11 @@ from neo4j import GraphDatabase
 import json
 from pathlib import Path
 import re
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class GraphBuilder:
     def __init__(self, uri: str, user: str, password: str):
@@ -80,7 +85,7 @@ if __name__ == "__main__":
         print(f"🔍 Preview triple: {t}")
     print("...\n")
 
-    graph = GraphBuilder("bolt://localhost:7687", "neo4j", "test1234")
+    graph = GraphBuilder("bolt://localhost:7687", "neo4j", os.getenv("NEO4J_PASSWORD"))
     graph.insert_triples_with_metadata(metadata)
     graph.close()
 
