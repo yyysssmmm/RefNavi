@@ -4,6 +4,7 @@ from langchain_core.prompts.chat import ChatPromptTemplate, SystemMessagePromptT
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
+from graphdb.graph_builder import GraphBuilder
 
 load_dotenv()
 
@@ -53,16 +54,23 @@ llm = ChatOpenAI(
 )
 
 # 3. Graph 연결
-graph = GraphBuilder(
-    uri=os.getenv("NEO4J_URI"),
-    user=os.getenv("NEO4J_USERNAME"),
+# 데이터 삽입용: GraphBuilder (아래는 예시)
+# graph_builder = GraphBuilder(
+#     uri=os.getenv("NEO4J_URI"),
+#     user=os.getenv("NEO4J_USERNAME"),
+#     password=os.getenv("NEO4J_PASSWORD")
+# )
+# 쿼리용: Neo4jGraph
+neo4j_graph = Neo4jGraph(
+    url=os.getenv("NEO4J_URI"),
+    username=os.getenv("NEO4J_USERNAME"),
     password=os.getenv("NEO4J_PASSWORD")
 )
 
 # 4. Chain 생성
 chain = GraphCypherQAChain.from_llm(
     llm=llm,
-    graph=graph,
+    graph=neo4j_graph,
     cypher_prompt=chat_prompt,  # ✨ 프롬프트 명시적으로 전달
     verbose=True,
     return_intermediate_steps=True,
