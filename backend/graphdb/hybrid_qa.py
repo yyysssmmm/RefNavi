@@ -16,7 +16,6 @@ VECTOR_DB_DIR = os.path.join(base_dir, "chroma_db")
 
 llm = ChatOpenAI(model="gpt-4", temperature=0)
 
-
 # ✅ 벡터 문서 title 요약용 함수
 def format_vector_titles(docs: list[Document]) -> str:
     if not docs:
@@ -29,8 +28,17 @@ def format_vector_titles(docs: list[Document]) -> str:
     return result.strip()
 
 
-def safe_graph_invoke(question: str) -> str:
+def safe_graph_invoke(question: str, chat_history=None) -> str:
     try:
+        if chat_history:
+            history_str = "\n".join([
+                f"Previous Q: {m.content}" if isinstance(m, HumanMessage) else f"Previous A: {m.content}"
+                for m in chat_history
+            ])
+            question = (
+                f"Context from previous conversation:\n{history_str}\n\n"
+                f"Now, based on the above, answer this current question:\n{question}"
+            )
         result = graph_chain.invoke({"query": question})
         return result.get("result", "")
     except Exception as e:
@@ -47,14 +55,18 @@ def hybrid_qa(
 ):
     print(f"\n💬 질문: {question}")
 
-    # ✅ 1. Vector QA 실행: 응답 + 소스
-    vector_answer, sources = run_qa_chain(
-        question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=True
-    )
-    vector_docs_summary = format_vector_titles(sources)
+    # ✅ 1. Graph QA 실행 (히스토리 반영)
+    graph_answer = safe_graph_invoke(question, chat_history)
 
-    # ✅ 2. Graph QA 실행
-    graph_answer = safe_graph_invoke(question)
+    # ✅ 2. Graph 답변이 유효하지 않으면 Vector QA 실행
+    if not graph_answer or graph_answer.strip() == "":
+        vector_answer, sources = run_qa_chain(
+            question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=True
+        )
+        vector_docs_summary = format_vector_titles(sources)
+    else:
+        vector_answer, sources = "", []
+        vector_docs_summary = ""
 
     # ✅ 3. System 메시지 프롬프트
     system_template = SystemMessagePromptTemplate.from_template(
@@ -86,7 +98,6 @@ def hybrid_qa(
     - [Answer Source: Own Knowledge]
     """
     )
-
 
     # ✅ 4. 이전 대화 히스토리 추가
     messages = []

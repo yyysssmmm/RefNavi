@@ -74,19 +74,26 @@ class GraphBuilder:
                 })
 
 
-# 실행 예시
-if __name__ == "__main__":
-    enriched_path = Path(__file__).resolve().parent.parent / "utils/metadata/enriched_metadata.json"
-    with open(enriched_path, "r", encoding="utf-8") as f:
+def insert_triples_to_graph(enriched_metadata_path: str):
+    with open(enriched_metadata_path, "r", encoding="utf-8") as f:
         metadata = json.load(f)
 
     print(f"\n📦 총 triple 수: {len(metadata.get('triples', []))}\n")
-    for t in metadata.get("triples", [])[:3]:
-        print(f"🔍 Preview triple: {t}")
-    print("...\n")
 
-    graph = GraphBuilder("bolt://localhost:7687", "neo4j", os.getenv("NEO4J_PASSWORD"))
+    graph = GraphBuilder(
+        uri="bolt://localhost:7687",
+        user="neo4j",
+        password=os.getenv("NEO4J_PASSWORD")
+    )
     graph.insert_triples_with_metadata(metadata)
     graph.close()
 
-    print("\n✅ triple + metadata 삽입 완료")
+    print("✅ GraphDB triple 삽입 완료")
+
+
+# 실행 예시
+if __name__ == "__main__":
+    enriched_path = Path(__file__).resolve().parent.parent / "utils/metadata/enriched_metadata.json"
+    print(f"\n📂 Enriched metadata path: {enriched_path}")
+
+    insert_triples_to_graph(str(enriched_path))
