@@ -117,7 +117,7 @@ export default function AnalysisPage() {
         });
 
         // 4. API 호출
-        const response = await fetch('http://localhost:8000/get_citation_purpose', {
+        const response = await fetch(`http://${process.env.NEXT_PUBLIC_API_URL}:8000/get_citation_purpose`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

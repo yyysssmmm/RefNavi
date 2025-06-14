@@ -87,7 +87,7 @@ export function usePDFStore() {
       formData.append('file', currentPDF.file);
 
       // PDF 업로드 및 분석 요청
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch(`http://${process.env.NEXT_PUBLIC_API_URL}:8000/upload`, {
         method: 'POST',
         body: formData,
       });
