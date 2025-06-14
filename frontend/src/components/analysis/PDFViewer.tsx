@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
 interface PDFViewerProps {
   pdfFile: PDFFile;
   isVisible: boolean;
-  onCitationClick?: (citationNumber: number, contextSentences: string[]) => void;
+  onCitationClick?: (citationNumber: number, contextSentences: string[], exactCitationSentence: string) => void;
 }
 
 export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFViewerProps) {
@@ -186,9 +186,11 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
         const sentenceIdx = sentences.findIndex(sen => sen.spans.some(sp => spanRanges[clickedSpanIdx]?.el === sp));
         // 앞뒤 3문장 추출
         const contextSentences = sentences.slice(Math.max(0, sentenceIdx - 3), sentenceIdx + 4).map(s => s.text);
-        console.log(contextSentences)
-        if (onCitationClick) onCitationClick(citationNumber, contextSentences);
-
+        // 정확한 인용 문장 추출
+        const exactCitationSentence = sentences[sentenceIdx]?.text || '';
+        console.log('Context sentences:', contextSentences);
+        console.log('Exact citation sentence:', exactCitationSentence);
+        if (onCitationClick) onCitationClick(citationNumber, contextSentences, exactCitationSentence);
       }) as EventListener);
 
       console.log(`총 ${citationCount}개의 인용 번호를 클릭 가능하게 만들었습니다.`);

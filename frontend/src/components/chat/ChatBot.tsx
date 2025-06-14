@@ -144,7 +144,7 @@ const handleSend = async () => {
           gap: 'clamp(0.75rem, 2vh, 1rem)'
         }}>
           {messages.length === 0 ? (
-            <div>...</div>
+            <div>안녕하세요. 논문 분석 도우미 챗봇🤖입니다. 무엇이든 물어보세요.</div>
           ) : messages.map((message) => (
             <div
               key={message.id}
