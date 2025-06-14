@@ -81,8 +81,8 @@ def insert_triples_to_graph(enriched_metadata_path: str):
     print(f"\n📦 총 triple 수: {len(metadata.get('triples', []))}\n")
 
     graph = GraphBuilder(
-        uri="bolt://localhost:7687",
-        user="neo4j",
+        uri=os.getenv("NEO4J_URI"),
+        user=os.getenv("NEO4J_USER"),
         password=os.getenv("NEO4J_PASSWORD")
     )
     graph.insert_triples_with_metadata(metadata)
