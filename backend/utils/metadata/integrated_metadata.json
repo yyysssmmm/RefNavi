@@ -19,7 +19,7 @@
         "Jamie Kiros",
         "Geoffrey E. Hinton"
       ],
-      "citation_count": 1324,
+      "citation_count": 1320,
       "source": "openalex"
     },
     {
@@ -41,7 +41,7 @@
         "Kyunghyun Cho",
         "Yoshua Bengio"
       ],
-      "citation_count": 15334,
+      "citation_count": 15333,
       "source": "openalex"
     },
     {
@@ -79,7 +79,7 @@
         "Li Dong",
         "Mirella Lapata"
       ],
-      "citation_count": 1027,
+      "citation_count": 1024,
       "source": "openalex"
     },
     {
@@ -102,7 +102,7 @@
         "Holger Schwenk",
         "Yoshua Bengio"
       ],
-      "citation_count": 21914,
+      "citation_count": 21841,
       "source": "openalex"
     },
     {
@@ -118,7 +118,7 @@
       "authors": [
         "François Chollet"
       ],
-      "citation_count": 15609,
+      "citation_count": 15567,
       "source": "openalex"
     },
     {
@@ -220,7 +220,7 @@
         "Shaoqing Ren",
         "Jian Sun"
       ],
-      "citation_count": 189135,
+      "citation_count": 188318,
       "source": "openalex"
     },
     {
@@ -254,7 +254,7 @@
         "Sepp Hochreiter",
         "Jürgen Schmidhuber"
       ],
-      "citation_count": 83100,
+      "citation_count": 82753,
       "source": "openalex"
     },
     {
@@ -385,7 +385,7 @@
         "Diederik P. Kingma",
         "Jimmy Ba"
       ],
-      "citation_count": 84383,
+      "citation_count": 84250,
       "source": "openalex"
     },
     {
@@ -424,7 +424,7 @@
         "Bowen Zhou",
         "Yoshua Bengio"
       ],
-      "citation_count": 1506,
+      "citation_count": 1505,
       "source": "openalex"
     },
     {
@@ -462,7 +462,7 @@
         "Hieu Pham",
         "Christopher D. Manning"
       ],
-      "citation_count": 8427,
+      "citation_count": 8421,
       "source": "openalex"
     },
     {
@@ -480,7 +480,7 @@
         "Mary Ann Marcinkiewicz",
         "Beatrice Santorini"
       ],
-      "citation_count": 7684,
+      "citation_count": 7683,
       "source": "openalex"
     },
     {
@@ -518,7 +518,7 @@
         "Dipanjan Das",
         "Jakob Uszkoreit"
       ],
-      "citation_count": 1406,
+      "citation_count": 1404,
       "source": "openalex"
     },
     {
@@ -591,7 +591,7 @@
         "Barry Haddow",
         "Alexandra Birch"
       ],
-      "citation_count": 7157,
+      "citation_count": 7148,
       "source": "openalex"
     },
     {
@@ -614,7 +614,7 @@
         "Geoffrey E. Hinton",
         "Jeff Dean"
       ],
-      "citation_count": 556,
+      "citation_count": 553,
       "source": "openalex"
     },
     {
@@ -634,7 +634,7 @@
         "Ilya Sutskever",
         "Ruslan Salakhutdinov"
       ],
-      "citation_count": 34031,
+      "citation_count": 34005,
       "source": "openalex"
     },
     {
@@ -653,7 +653,7 @@
         "Jason Weston",
         "Rob Fergus"
       ],
-      "citation_count": 1748,
+      "citation_count": 1747,
       "source": "openalex"
     },
     {
@@ -671,7 +671,7 @@
         "Oriol Vinyals",
         "Quoc V. Le"
       ],
-      "citation_count": 13804,
+      "citation_count": 13792,
       "source": "openalex"
     },
     {
@@ -691,7 +691,7 @@
         "Jon Shlens",
         "Zbigniew Wojna"
       ],
-      "citation_count": 27456,
+      "citation_count": 27349,
       "source": "openalex"
     },
     {
@@ -768,7 +768,7 @@
         "Macduff Hughes",
         "J. Dean"
       ],
-      "citation_count": 6771,
+      "citation_count": 6769,
       "source": "semantic scholar"
     },
     {

@@ -20,16 +20,20 @@ router = APIRouter()
 class CitationPurposeRequest(BaseModel):
     citation_number: int
     local_context: list[str]
+    exact_citation_sentence: str
     all_contexts: list[str]
     abstract: str
     full_text: str
+    ref_title: str
 
 async def analyze_with_perplexity(
     citation_number: int,
     local_context: List[str],
+    exact_citation_sentence: str,
     all_contexts: List[str],
     abstract: str,
-    full_text: str
+    full_text: str,
+    ref_title: str
 ) -> str:
     try:
         # Perplexity API 키 확인
@@ -38,20 +42,24 @@ async def analyze_with_perplexity(
             raise ValueError("PERPLEXITY_API_KEY is not set in environment variables")
 
         # 프롬프트 구성
-        prompt = f"""You are an expert in academic paper analysis. Analyze the purpose of citation [{citation_number}] in the paper.
+        prompt = f"""당신은 학술 논문 분석 전문가입니다. 다음 정보를 바탕으로 인용의 목적을 간단명료하게 분석해주세요.
 
-Citation Information:
-- Citation Number: [{citation_number}]
-- Local Context (where the citation appears): {json.dumps(local_context, ensure_ascii=False)}
-- All Citation Contexts: {json.dumps(all_contexts, ensure_ascii=False)}
-- Cited Paper's Abstract: {abstract}
+인용 정보:
+- 인용된 논문 제목: {ref_title}
+- 정확한 인용 문장: {exact_citation_sentence}
+- 인용 문장의 문맥 (앞뒤 문장): {json.dumps(local_context, ensure_ascii=False)}
+- 인용된 논문의 쓰인 다른 문장들: {json.dumps(all_contexts, ensure_ascii=False)}
+- 인용된 논문의 초록: {abstract}
 
-Please analyze:
-1. Why was this paper cited in this specific context?
-2. What aspect of the cited paper is being referenced?
-3. How does this citation support the author's argument?
+다음 두 가지에 초점을 맞춰 1~2가지 이유로 분석해 주세요:
+1. 인용 문장에서 어떤 목적(예: 근거 제시, 방법 인용, 배경 설명 등)으로 이 논문이 쓰였는가?
+2. 인용 논문의 어떤 구체적 내용이 그 목적에 활용되었는가?
 
-Provide a clear and concise analysis in Korean, focusing on the academic significance of this citation."""
+분석은 다음 형식으로 작성해주세요:
+[인용 목적] 해당 문장에서 이 인용이 사용된 이유를 1~2문장으로 설명해주세요.
+[참조 내용] 인용된 논문의 어떤 개념, 방법, 결과 또는 주장이 문장에 연결되는지를 3~4문장으로 설명해주세요.
+
+분석은 학술적 중요성에 초점을 맞추되, 반드시 간결하게 작성해주세요."""
 
         # Perplexity API 호출
         async with httpx.AsyncClient() as client:
@@ -88,9 +96,11 @@ async def get_citation_purpose(request: CitationPurposeRequest):
         purpose = await analyze_with_perplexity(
             citation_number=request.citation_number,
             local_context=request.local_context,
+            exact_citation_sentence=request.exact_citation_sentence,
             all_contexts=request.all_contexts,
             abstract=request.abstract,
-            full_text=request.full_text
+            full_text=request.full_text,
+            ref_title=request.ref_title
         )
         
         return JSONResponse(content={"purpose": purpose})

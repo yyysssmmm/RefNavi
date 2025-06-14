@@ -74,6 +74,7 @@ export default function AnalysisPage() {
   const handleCitationClick = async (
     citationNumber: number,
     contextSentences: string[],
+    exactCitationSentence: string,
     options?: { clearReferences?: boolean; keepViewMode?: boolean }
   ) => {
     console.log('🔎 클릭된 citationNumber:', citationNumber);
@@ -100,14 +101,16 @@ export default function AnalysisPage() {
         
         // 2. abstract
         const abstract = reference.abstract || '';
+        const ref_title = reference.ref_title || '';
         
         // 3. full text (본문 텍스트) - analysisResult의 body_fixed 사용
         const full_text = analysisResult.body_fixed || '';
         
         console.log('Citation data:', {
           citationNumber,
-          refTitle: reference.ref_title,
+          ref_title,
           localContext: contextSentences,
+          exactCitationSentence,
           allContexts: all_contexts,
           abstract,
           fullTextLength: full_text.length
@@ -122,9 +125,11 @@ export default function AnalysisPage() {
           body: JSON.stringify({
             citation_number: citationNumber,
             local_context: contextSentences,
+            exact_citation_sentence: exactCitationSentence,
             all_contexts,
             abstract,
-            full_text
+            full_text,
+            ref_title
           }),
         });
         if (!response.ok) throw new Error('API 요청 실패');
@@ -133,7 +138,9 @@ export default function AnalysisPage() {
         console.log('all_contexts', all_contexts);
         console.log('abstract', abstract);
         console.log('full_text', full_text);
+        console.log('ref_title', ref_title);
         const data = await response.json();
+        console.log('data', data);
         setCitationPurpose(data.purpose);
       } catch (err: unknown) {
         setPurposeError(err instanceof Error ? err.message : '오류 발생');
@@ -230,8 +237,8 @@ export default function AnalysisPage() {
                 <PDFViewer
                   pdfFile={currentPDF}
                   isVisible={viewMode === 'pdf'}
-                  onCitationClick={(citationNumber, contextSentences) => {
-                    handleCitationClick(citationNumber, contextSentences, { clearReferences: true, keepViewMode: true });
+                  onCitationClick={(citationNumber, contextSentences, exactCitationSentence) => {
+                    handleCitationClick(citationNumber, contextSentences, exactCitationSentence, { clearReferences: true, keepViewMode: true });
                   }}
                 />
               </div>
@@ -392,7 +399,7 @@ export default function AnalysisPage() {
                 ) : citationPurpose && (
                   <div style={{ marginTop: '1rem', background: '#eef2ff', padding: '1rem', borderRadius: '8px' }}>
                     <strong>📌 Citation Purpose:</strong>
-                    <div style={{ marginTop: '0.5rem', color: '#1e293b' }}>{citationPurpose}</div>
+                    <div style={{ marginTop: '0.5rem', color: '#1e293b', whiteSpace: 'pre-wrap' }}>{citationPurpose}</div>
                   </div>
                 )}
               </div>
