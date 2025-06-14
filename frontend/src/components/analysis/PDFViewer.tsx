@@ -20,6 +20,11 @@ interface PDFViewerProps {
   onCitationClick?: (citationNumber: number, contextSentences: string[], exactCitationSentence: string) => void;
 }
 
+interface CitationClickEvent extends CustomEvent {
+  detail: number;
+  extraSpanIdx?: number;
+}
+
 export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -174,7 +179,7 @@ export default function PDFViewer({ pdfFile, isVisible, onCitationClick }: PDFVi
 
       // 클릭 이벤트 위임(전역)
       window.addEventListener('citationClick', ((e: Event) => {
-        const customEvent = e as CustomEvent<any>;
+        const customEvent = e as CitationClickEvent;
         const citationNumber = customEvent.detail;
         // 클릭된 span의 인덱스 추출
         let clickedSpanIdx = customEvent.extraSpanIdx;
