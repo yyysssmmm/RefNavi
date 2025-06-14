@@ -33,7 +33,7 @@ interface AnswerResponse {
 }
 
 async function fetchAnswer(query: string, top_k: number = 3): Promise<AnswerResponse> {
-  const response = await fetch("http://localhost:8000/query", {
+  const response = await fetch(`http://${process.env.NEXT_PUBLIC_API_URL}:8000/query`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
