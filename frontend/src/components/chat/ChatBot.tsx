@@ -16,12 +16,23 @@ interface ChatBotProps {
       year?: number;
       authors?: string[];
       summary?: string;
-    } []
+    }[]
   ) => void;
 }
 
-// ✅ ChatBot 컴포넌트 함수 정의 위에 삽입
-async function fetchAnswer(query: string, top_k: number = 3): Promise<{ answer: string; sources: any[] }> {
+interface Source {
+  title?: string;
+  year?: number;
+  authors?: string[];
+  summary?: string;
+}
+
+interface AnswerResponse {
+  answer: string;
+  sources: Source[];
+}
+
+async function fetchAnswer(query: string, top_k: number = 3): Promise<AnswerResponse> {
   const response = await fetch("http://localhost:8000/query", {
     method: "POST",
     headers: {
@@ -30,37 +41,36 @@ async function fetchAnswer(query: string, top_k: number = 3): Promise<{ answer: 
     body: JSON.stringify({ query, top_k }),
   });
 
-  const raw = await response.text();  // 🔥 중요: raw 텍스트 보기
+  const raw = await response.text();
   console.log("📦 Raw Response Text:", raw);
 
   if (!response.ok) {
     throw new Error("❌ 답변을 가져오는 데 실패했습니다.");
   }
 
-  return JSON.parse(raw);  // 혹은 response.json()
+  return JSON.parse(raw);
 }
-
 
 export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: ChatBotProps) {
   const [inputMessage, setInputMessage] = useState('');
 
-const handleSend = async () => {
-  if (inputMessage.trim()) {
-    const userMessage = inputMessage.trim();
-    onSendMessage(userMessage, 'user');
-    setInputMessage('');
+  const handleSend = async () => {
+    if (inputMessage.trim()) {
+      const userMessage = inputMessage.trim();
+      onSendMessage(userMessage, 'user');
+      setInputMessage('');
 
-    try {
-      const { answer, sources } = await fetchAnswer(userMessage, 3);
-      onSendMessage(answer, 'assistant', sources);
-    } catch (error) {
-      console.error('❌ LLM 응답 실패:', error);
-      onSendMessage('⚠️ 답변을 불러오지 못했습니다. 다시 시도해주세요.', 'assistant');
+      try {
+        const { answer, sources } = await fetchAnswer(userMessage, 3);
+        onSendMessage(answer, 'assistant', sources);
+      } catch (error) {
+        console.error('❌ LLM 응답 실패:', error);
+        onSendMessage('⚠️ 답변을 불러오지 못했습니다. 다시 시도해주세요.', 'assistant');
+      }
     }
-  }
-};
+  };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
