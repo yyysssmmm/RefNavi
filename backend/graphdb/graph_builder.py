@@ -82,7 +82,7 @@ def insert_triples_to_graph(enriched_metadata_path: str):
 
     graph = GraphBuilder(
         uri=os.getenv("NEO4J_URI"),
-        user=os.getenv("NEO4J_USER"),
+        user=os.getenv("NEO4J_USERNAME"),
         password=os.getenv("NEO4J_PASSWORD")
     )
     graph.insert_triples_with_metadata(metadata)
