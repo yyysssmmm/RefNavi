@@ -2,17 +2,20 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from fastapi import HTTPException
-from fastapi import APIRouter
+from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
-from vectorstore.qa_chain import run_qa_chain
+from graphdb.hybrid_qa import hybrid_qa  # ✅ 핵심 함수 import
+
+base_dir = os.path.join(os.path.dirname(__file__), "..")
+VECTOR_DB_DIR = os.path.join(base_dir, "utils/metadata/chroma_db")
 
 router = APIRouter()
 
-# ✅ 요청 형식 정의
+# ✅ 요청 형식
 class QueryRequest(BaseModel):
     query: str
     top_k: int = 3
+    return_sources: bool = False  # ✅ 추가됨
 
 class Source(BaseModel):
     title: str | None = None
@@ -20,7 +23,7 @@ class Source(BaseModel):
     authors: list[str] | None = None
     summary: str | None = None
 
-# ✅ 응답 형식 정의
+# ✅ 응답 형식
 class QueryResponse(BaseModel):
     answer: str
     sources: list[Source]
@@ -30,32 +33,39 @@ class QueryResponse(BaseModel):
 def query_endpoint(request: QueryRequest):
     try:
         print(f"📥 받은 쿼리: {request.query}")
-        
-        answer, source_docs = run_qa_chain(request.query, k=request.top_k, return_sources=True)
+        print(f"🔁 반환할 소스 포함 여부: {request.return_sources}")
+
+        # ✅ hybrid_qa 호출
+        answer, source_docs = hybrid_qa(
+            question=request.query,
+            k=request.top_k,
+            vector_db_dir=VECTOR_DB_DIR,
+            return_sources=request.return_sources
+        )
 
         sources = []
-        for doc in source_docs:
-            try:
-                # authors를 리스트로 변환
-                authors = doc.metadata.get("authors", "")
-                if isinstance(authors, str):
-                    authors = [author.strip() for author in authors.split(",") if author.strip()]
-                elif not isinstance(authors, list):
-                    authors = []
+        if request.return_sources:
+            for doc in source_docs:
+                try:
+                    authors = doc.metadata.get("authors", "")
+                    if isinstance(authors, str):
+                        authors = [a.strip() for a in authors.split(",") if a.strip()]
+                    elif not isinstance(authors, list):
+                        authors = []
 
-                sources.append({
-                    "title": doc.metadata.get("title", "제목 없음"),
-                    "year": doc.metadata.get("year"),
-                    "authors": authors,  # 변환된 리스트 사용
-                    "summary": doc.page_content[:300] + "..."
-                })
-            except Exception as e:
-                print("⚠️ 소스 포맷 에러:", e)
-                sources.append({
-                    "title": "Unknown",
-                    "authors": [],  # 빈 리스트로 초기화
-                    "summary": str(doc)[:300]
-                })
+                    sources.append({
+                        "title": doc.metadata.get("title", "제목 없음"),
+                        "year": doc.metadata.get("year"),
+                        "authors": authors,
+                        "summary": doc.page_content[:300] + "..."
+                    })
+                except Exception as e:
+                    print("⚠️ 소스 포맷 에러:", e)
+                    sources.append({
+                        "title": "Unknown",
+                        "authors": [],
+                        "summary": str(doc)[:300]
+                    })
 
         return {"answer": answer, "sources": sources}
 
@@ -63,7 +73,12 @@ def query_endpoint(request: QueryRequest):
         print(f"❌ 에러 발생: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+
 # ✅ 로컬 테스트용
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api.query_endpoint:app", host="0.0.0.0", port=8000, reload=True)
+    from fastapi import FastAPI
+
+    app = FastAPI()
+    app.include_router(router)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

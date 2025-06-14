@@ -28,7 +28,8 @@ if not OPENAI_API_KEY:
     raise ValueError("❌ OPENAI_API_KEY가 .env에서 불러와지지 않았습니다!")
 
 # ✅ 설정
-VECTOR_DB_DIR = "chroma_db"
+base_dir = os.path.join(os.path.dirname(__file__), "..")
+VECTOR_DB_DIR = os.path.join(base_dir, "utils/metadata/chroma_db")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # ✅ 전역 embedding + vector DB 인스턴스
@@ -43,7 +44,7 @@ memory = ConversationBufferMemory(
 def run_qa_chain(
     query: str,
     k: int = 3,
-    VECTOR_DB_DIR = "chroma_db",
+    VECTOR_DB_DIR = VECTOR_DB_DIR,
     return_sources: bool = False,
 
 ) -> Union[str, Tuple[str, List[Document]]]:
@@ -76,8 +77,10 @@ def run_qa_chain(
     else:
         print("\n📚 참조 문서가 없습니다.")
 
+    print(answer)
     return (answer, sources) if return_sources else (answer, [])
 
 # ✅ 단독 실행용
 if __name__ == "__main__":
     run_qa_chain("What is the contribution of the Transformer paper?", k=5)
+    #run_qa_chain("안녕")
