@@ -5,9 +5,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 import json
 from fastapi import APIRouter, UploadFile, File
 from utils.pdf_parser import process_pdf
-from utils.metadata_fetcher import enrich_metadata_with_fallback
+from utils.ss_metadata_fetcher import enrich_metadata_with_fallback
 from vectorstore.build_vector_db import build_vector_db
-
+from utils.relation_fetcher import convert_to_enriched_metadata  # ✅ 추가
 
 router = APIRouter()
 
@@ -32,22 +32,36 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     base_metadata_path = os.path.join(metadata_dir, f"{base_filename}_metadata.json")
     integrated_metadata_path = os.path.join(metadata_dir, "integrated_metadata.json")
+    enriched_metadata_path = os.path.join(metadata_dir, "enriched_metadata.json")  # ✅ 추가
 
     # 3. 파싱 및 메타데이터 추출
     process_pdf(pdf_path, base_metadata_path)
-    enrich_metadata_with_fallback(base_metadata_path, integrated_metadata_path, cache_dir=os.path.join(metadata_dir, '.cache'))
+    enrich_metadata_with_fallback(
+        base_metadata_path,
+        integrated_metadata_path,
+        cache_dir=os.path.join(metadata_dir, '.cache')
+    )
 
-    # 4. 통합 메타데이터 로드 및 응답
-    with open(integrated_metadata_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    # ✅ 4. 관계 추론 LLM 호출 (triple 생성)
+    convert_to_enriched_metadata(
+        integrated_path=integrated_metadata_path,
+        enriched_path=enriched_metadata_path
+    )
 
     # 5. vector DB 구축
-    build_vector_db(integrated_metadata_path, os.path.join(metadata_dir, "chroma_db"))
+    build_vector_db(
+        integrated_metadata_path,
+        os.path.join(metadata_dir, "chroma_db")
+    )
+
+    # 6. 응답
+    with open(integrated_metadata_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
     return {
         "title": data.get("title"),
         "abstract_original": data.get("abstract_original"),
         "abstract_llm": data.get("abstract_llm"),
         "references": data.get("references", []),
-        "body_fixed": data.get("body_fixed", ""),
+        "body_fixed": data.get("body_fixed", "")
     }
