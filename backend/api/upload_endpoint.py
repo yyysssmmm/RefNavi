@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 import json
 from fastapi import APIRouter, UploadFile, File
 from utils.pdf_parser import process_pdf
-from utils.ss_metadata_fetcher import enrich_metadata_with_fallback
+from utils.metadata_fetcher import enrich_metadata_with_fallback
 from vectorstore.build_vector_db import build_vector_db
 from utils.relation_fetcher import convert_to_enriched_metadata  # ✅ 추가
 
