@@ -65,7 +65,7 @@
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "provides background",
       "[10] Generating sequences with recurrent neural networks"
     ],
     [
@@ -260,7 +260,7 @@
         "J. Kiros",
         "Geoffrey E. Hinton"
       ],
-      "citation_count": 10476,
+      "citation_count": 10481,
       "source": "semantic scholar"
     },
     {
@@ -282,7 +282,7 @@
         "Kyunghyun Cho",
         "Yoshua Bengio"
       ],
-      "citation_count": 27276,
+      "citation_count": 27294,
       "source": "semantic scholar"
     },
     {
@@ -343,7 +343,7 @@
         "Holger Schwenk",
         "Yoshua Bengio"
       ],
-      "citation_count": 23325,
+      "citation_count": 23336,
       "source": "semantic scholar"
     },
     {
@@ -359,7 +359,7 @@
       "authors": [
         "François Chollet"
       ],
-      "citation_count": 14543,
+      "citation_count": 14555,
       "source": "semantic scholar"
     },
     {
@@ -378,7 +378,7 @@
         "Kyunghyun Cho",
         "Yoshua Bengio"
       ],
-      "citation_count": 12692,
+      "citation_count": 12702,
       "source": "semantic scholar"
     },
     {
@@ -426,7 +426,7 @@
         "Denis Yarats",
         "Yann Dauphin"
       ],
-      "citation_count": 3284,
+      "citation_count": 3286,
       "source": "semantic scholar"
     },
     {
@@ -442,7 +442,7 @@
       "authors": [
         "Alex Graves"
       ],
-      "citation_count": 4032,
+      "citation_count": 4033,
       "source": "semantic scholar"
     },
     {
@@ -461,7 +461,7 @@
         "Shaoqing Ren",
         "Jian Sun"
       ],
-      "citation_count": 193641,
+      "citation_count": 193821,
       "source": "semantic scholar"
     },
     {
@@ -496,7 +496,7 @@
         "Sepp Hochreiter",
         "J. Schmidhuber"
       ],
-      "citation_count": 90540,
+      "citation_count": 90592,
       "source": "semantic scholar"
     },
     {
@@ -591,7 +591,7 @@
         "Alex Graves",
         "K. Kavukcuoglu"
       ],
-      "citation_count": 551,
+      "citation_count": 552,
       "source": "semantic scholar"
     },
     {
@@ -627,7 +627,7 @@
         "Diederik P. Kingma",
         "Jimmy Ba"
       ],
-      "citation_count": 149933,
+      "citation_count": 150007,
       "source": "semantic scholar"
     },
     {
@@ -666,7 +666,7 @@
         "Bowen Zhou",
         "Yoshua Bengio"
       ],
-      "citation_count": 2137,
+      "citation_count": 2138,
       "source": "semantic scholar"
     },
     {
@@ -704,7 +704,7 @@
         "Hieu Pham",
         "Christopher D. Manning"
       ],
-      "citation_count": 7955,
+      "citation_count": 7959,
       "source": "semantic scholar"
     },
     {
@@ -722,7 +722,7 @@
         "Beatrice Santorini",
         "Mary Ann Marcinkiewicz"
       ],
-      "citation_count": 8926,
+      "citation_count": 8927,
       "source": "semantic scholar"
     },
     {
@@ -760,7 +760,7 @@
         "Dipanjan Das",
         "Jakob Uszkoreit"
       ],
-      "citation_count": 1373,
+      "citation_count": 1374,
       "source": "semantic scholar"
     },
     {
@@ -778,7 +778,7 @@
         "Caiming Xiong",
         "R. Socher"
       ],
-      "citation_count": 1556,
+      "citation_count": 1557,
       "source": "semantic scholar"
     },
     {
@@ -833,7 +833,7 @@
         "B. Haddow",
         "Alexandra Birch"
       ],
-      "citation_count": 7730,
+      "citation_count": 7734,
       "source": "semantic scholar"
     },
     {
@@ -856,7 +856,7 @@
         "Geoffrey E. Hinton",
         "J. Dean"
       ],
-      "citation_count": 2635,
+      "citation_count": 2644,
       "source": "semantic scholar"
     },
     {
@@ -876,7 +876,7 @@
         "I. Sutskever",
         "R. Salakhutdinov"
       ],
-      "citation_count": 39787,
+      "citation_count": 39800,
       "source": "semantic scholar"
     },
     {
@@ -895,7 +895,7 @@
         "J. Weston",
         "R. Fergus"
       ],
-      "citation_count": 2561,
+      "citation_count": 2564,
       "source": "semantic scholar"
     },
     {
@@ -913,7 +913,7 @@
         "O. Vinyals",
         "Quoc V. Le"
       ],
-      "citation_count": 20528,
+      "citation_count": 20541,
       "source": "semantic scholar"
     },
     {
@@ -933,7 +933,7 @@
         "Jonathon Shlens",
         "Z. Wojna"
       ],
-      "citation_count": 27330,
+      "citation_count": 27350,
       "source": "semantic scholar"
     },
     {
@@ -1010,7 +1010,7 @@
         "Macduff Hughes",
         "J. Dean"
       ],
-      "citation_count": 6783,
+      "citation_count": 6787,
       "source": "semantic scholar"
     },
     {

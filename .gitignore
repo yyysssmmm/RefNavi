@@ -65,3 +65,13 @@ yarn-error.log*
 # -----------------------
 *.tsbuildinfo
 next-env.d.ts
+
+# -----------------------
+# 📦 Vector DB (ChromaDB, sqlite cache)
+# -----------------------
+**/chroma_db/
+**/chroma_db/**
+**/chroma.sqlite3
+**/*.sqlite3
+**/*.bin
+**/*.parquet
