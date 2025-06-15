@@ -30,7 +30,9 @@ system_prompt = (
     "    `toLower(p.abstract_llm) CONTAINS '...' OR toLower(p.abstract_original) CONTAINS '...' OR toLower(p.ref_abstract) CONTAINS '...'`\n"
     "  • Return all three abstract fields in the result:\n"
     "    `RETURN p.abstract_llm AS abstract_llm, p.abstract_original AS abstract_original, p.ref_abstract AS ref_abstract`\n"
-    "  • This ensures robustness when the user does not specify the source of the abstract.\n"
+    "- **When counting how many papers are referenced by a specific paper:**\n"
+    "  • Always use the outgoing edge: `(p:Paper)-[]->(cited:Paper)`\n"
+    "  • Use `COUNT(DISTINCT cited)` to avoid counting duplicates.\n"
     "- For citation-based queries, sort results by citation count: `ORDER BY p.citation_count DESC`\n"
     "- Use `WHERE p.<field> IS NOT NULL` to avoid nulls in filtering or ordering.\n"
     "- When exploring papers **cited by** another paper, follow **any outgoing relationship**:\n"
@@ -57,7 +59,14 @@ system_prompt = (
     "RETURN b.title AS title,\n"
     "       b.abstract_llm AS abstract_llm,\n"
     "       b.abstract_original AS abstract_original,\n"
-    "       b.ref_abstract AS ref_abstract"
+    "       b.ref_abstract AS ref_abstract\n\n"
+
+    "Example 3:\n"
+    "Q: How many papers are referenced by 'Attention Is All You Need'?\n"
+    "Cypher:\n"
+    "MATCH (p:Paper)-[]->(cited:Paper)\n"
+    "WHERE toLower(p.title) CONTAINS 'attention is all you need'\n"
+    "RETURN COUNT(DISTINCT cited) AS reference_count"
 )
 
 
