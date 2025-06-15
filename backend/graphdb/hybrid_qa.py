@@ -70,7 +70,7 @@ def hybrid_qa(
 
     # ✅ 3. System 메시지 프롬프트
     system_template = SystemMessagePromptTemplate.from_template(
-    """You are a helpful assistant. The user may ask in any language, and you must respond in that same language.
+        """You are a helpful assistant. The user may ask in any language, and you must respond in that same language.
 
     You are given two optional answers to assist you:
 
@@ -79,18 +79,24 @@ def hybrid_qa(
 
     - Answer B (from Graph DB): {graph_answer}
 
-    Your task is to answer the user's question using the most relevant and informative source.
+    Your task is to answer the user's question using the most relevant, informative, and complete source.
 
     🔍 Source selection rules:
-    1. If the Graph DB gives a clear and specific answer (e.g., author names, publication year, citation counts), use it.
-    2. If the Graph DB is unhelpful, check if the document titles from Vector DB are clearly semantically related to the question topic.
-    - If titles are not relevant or only loosely connected, IGNORE the Vector DB answer.
-    - Especially for greetings or casual questions (e.g., “hello”, “안녕”), do NOT use the Vector DB at all, even if it retrieved documents.
+    1. First check the **substance and relevance** of the Graph DB answer:
+    - If the answer from Graph DB contains specific facts that directly and clearly answer the user's question (e.g., citation count, author names, explicit relationships), it can be used.
+    - However, if the Graph DB answer is vague, incomplete, uninformative, or simply reflects a failed query or generic fallback text, it must be ignored — even if it exists.
 
-    3. If neither source is useful, use your own general knowledge to answer.
+    2. If Graph DB is not informative enough, examine the Vector DB:
+    - Check if the related document titles are **semantically relevant** to the user's question topic.
+    - If they are clearly related, you may use the Vector DB answer to support your response.
+    - If they are weakly or loosely related, ignore the Vector DB as well.
 
-    ⚠️ VERY IMPORTANT:
-    - Do not rely on the existence of documents alone. Only use them if they directly help answer the question.
+    3. If neither source is informative or clearly helpful, answer the question using your own general knowledge and reasoning.
+
+    ⚠️ IMPORTANT:
+    - You must **not** select an answer source just because it exists.
+    - Prioritize **actual usefulness** of the content, not just presence.
+    - For generic or open-ended questions (e.g., "what are prior SOTA models?"), use the source that actually contributes meaningful content.
 
     ✅ Finish your response with exactly one of:
     - [Answer Source: Vector DB]
