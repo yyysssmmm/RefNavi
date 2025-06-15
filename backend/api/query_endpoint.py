@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
-from graphdb.hybrid_qa import hybrid_qa  # ✅ 핵심 함수 import
+from graphdb.hybrid_qa import hybrid_qa
 
 base_dir = os.path.join(os.path.dirname(__file__), "..")
 VECTOR_DB_DIR = os.path.join(base_dir, "utils/metadata/chroma_db")
@@ -15,7 +15,7 @@ router = APIRouter()
 class QueryRequest(BaseModel):
     query: str
     top_k: int = 3
-    return_sources: bool = False  # ✅ 추가됨
+    return_sources: bool = False
 
 class Source(BaseModel):
     title: str | None = None

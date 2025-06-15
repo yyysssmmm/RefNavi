@@ -5,9 +5,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 import json
 from fastapi import APIRouter, UploadFile, File
 from utils.pdf_parser import process_pdf
-from utils.ss_metadata_fetcher import enrich_metadata_with_fallback
+from utils.metadata_fetcher import enrich_metadata_with_fallback
 from vectorstore.build_vector_db import build_vector_db
-from utils.relation_fetcher import convert_to_enriched_metadata  # ✅ 추가
+from utils.relation_fetcher import convert_to_enriched_metadata
+from graphdb.graph_builder import insert_triples_to_graph
+
 
 router = APIRouter()
 
@@ -54,7 +56,10 @@ async def upload_pdf(file: UploadFile = File(...)):
         os.path.join(metadata_dir, "chroma_db")
     )
 
-    # 6. 응답
+    # 6. graph DB 구축 
+    insert_triples_to_graph(enriched_metadata_path)
+
+    # 7. 응답
     with open(integrated_metadata_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
