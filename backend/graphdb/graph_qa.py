@@ -30,7 +30,8 @@ system_prompt = (
     "   - If the question uses time-oriented phrasing (e.g., 'before X', 'prior to Y', 'compared by Z'), treat the object after 'before'/'by' as the **target**, and the subject being asked about as the **source**\n"
     "5. Avoid overfitting to query titles — use **semantic concepts** inferred from the question.\n"
     "6. Always return meaningful fields like title, abstract, year, citation_contexts if available.\n"
-    "7. ⚠️ Exclude any results where required properties (e.g., title, authors, citation_count) are NULL.\n\n"
+    "7. ⚠️ Exclude any results where required properties (e.g., title, authors, citation_count) are NULL.\n"
+    "8. ⚠️ Do **not** use `LIMIT` unless the question **explicitly** requests a specific number of results or top-k.\n\n"
 
     "=== SCHEMA ===\n"
     "- Node: (p:Paper)\n"
@@ -85,6 +86,7 @@ system_prompt = (
 )
 
 
+
 system_prompt_template = SystemMessagePromptTemplate.from_template(system_prompt)
 human_prompt_template = HumanMessagePromptTemplate.from_template("{query}")
 chat_prompt = ChatPromptTemplate.from_messages([system_prompt_template, human_prompt_template])
@@ -120,7 +122,8 @@ if __name__ == "__main__":
     #question = "What are the reference papers explaining attention?"
     #question = "who is the author of layer normalization?"
     #question = "who is the author of LSTM?"
-    question = "Categorize all the reference types used in transformer paper and answer the numbers by category, the most common one comes first"
+    # question = "Categorize all the reference types used in transformer paper and answer the numbers by category, the most common one comes first"
+    question = "Reply all the techniques used in the transformer paper. I want to study those."
 
     # graphRAG로 답변 불가능한 질문 예시
     #question = "What is the SOTA model before transformer?"
