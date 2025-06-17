@@ -117,7 +117,12 @@ export default function AnalysisPage() {
         });
 
         // 4. API 호출
-        const response = await fetch(`http://${process.env.NEXT_PUBLIC_API_URL}:8000/get_citation_purpose`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+        if (!apiUrl) {
+          throw new Error('API Gateway URL is not defined');
+        }
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
