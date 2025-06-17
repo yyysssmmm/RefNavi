@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
 from graphdb.hybrid_qa import hybrid_qa
+from vectorstore.qa_chain import run_qa_chain
 
 base_dir = os.path.join(os.path.dirname(__file__), "..")
 VECTOR_DB_DIR = os.path.join(base_dir, "utils/metadata/chroma_db")
@@ -16,6 +17,7 @@ class QueryRequest(BaseModel):
     query: str
     top_k: int = 3
     return_sources: bool = False
+    mode: str = "hybrid"
 
 class Source(BaseModel):
     title: str | None = None
@@ -34,14 +36,22 @@ def query_endpoint(request: QueryRequest):
     try:
         print(f"📥 받은 쿼리: {request.query}")
         print(f"🔁 반환할 소스 포함 여부: {request.return_sources}")
+        print(f"🧩 QA 모드: {request.mode}")
 
-        # ✅ hybrid_qa 호출
-        answer, source_docs = hybrid_qa(
-            question=request.query,
-            k=request.top_k,
-            vector_db_dir=VECTOR_DB_DIR,
-            return_sources=request.return_sources
-        )
+        if request.mode == "vector-only":
+            answer, source_docs = run_qa_chain(
+                query=request.query,
+                k=request.top_k,
+                VECTOR_DB_DIR=VECTOR_DB_DIR,
+                return_sources=request.return_sources
+            )
+        else:  # hybrid (기본)
+            answer, source_docs = hybrid_qa(
+                question=request.query,
+                k=request.top_k,
+                vector_db_dir=VECTOR_DB_DIR,
+                return_sources=request.return_sources
+            )
 
         sources = []
         if request.return_sources:

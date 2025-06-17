@@ -114,7 +114,7 @@ export function usePDFStore() {
 
   const addChatMessage : (
     content: string,
-    type?: 'user' | 'assistant',
+    type?: 'user' | 'assistant' | 'reset',
     sources?: {
       title?: string;
       year?: number;
@@ -122,12 +122,16 @@ export function usePDFStore() {
       summary?: string;
     }[]
   ) => void = useCallback((content, type='user', sources) => {
+    if (type === 'reset') {
+      setChatMessages([]);
+      return;
+    }
     const message: ChatMessage = {
       id: generateId(),
       type,
       content,
       timestamp: new Date(),
-      sources,  // ⬅️ 추가됨
+      sources,
     };
     setChatMessages(prev => [...prev, message]);
   }, []);

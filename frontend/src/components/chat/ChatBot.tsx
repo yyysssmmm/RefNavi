@@ -10,7 +10,7 @@ interface ChatBotProps {
   messages: ChatMessage[];
   onSendMessage: (
     message: string,
-    type?: 'user' | 'assistant',
+    type?: 'user' | 'assistant' | 'reset',
     sources?: {
       title?: string;
       year?: number;
@@ -32,13 +32,13 @@ interface AnswerResponse {
   sources: Source[];
 }
 
-async function fetchAnswer(query: string, top_k: number = 3): Promise<AnswerResponse> {
+async function fetchAnswer(query: string, top_k: number = 3, mode: 'hybrid' | 'vector-only' = 'hybrid'): Promise<AnswerResponse> {
   const response = await fetch(`http://${process.env.NEXT_PUBLIC_API_URL}:8000/query`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query, top_k }),
+    body: JSON.stringify({ query, top_k, mode }),
   });
 
   const raw = await response.text();
@@ -53,6 +53,7 @@ async function fetchAnswer(query: string, top_k: number = 3): Promise<AnswerResp
 
 export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: ChatBotProps) {
   const [inputMessage, setInputMessage] = useState('');
+  const [mode, setMode] = useState<'hybrid' | 'vector-only'>('hybrid');
 
   const handleSend = async () => {
     if (inputMessage.trim()) {
@@ -61,7 +62,7 @@ export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: Ch
       setInputMessage('');
 
       try {
-        const { answer, sources } = await fetchAnswer(userMessage, 3);
+        const { answer, sources } = await fetchAnswer(userMessage, 3, mode);
         onSendMessage(answer, 'assistant', sources);
       } catch (error) {
         console.error('❌ LLM 응답 실패:', error);
@@ -109,13 +110,31 @@ export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: Ch
           background: '#4f46e5',
           color: 'white'
         }}>
-          <h3 style={{
-            fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
-            fontWeight: 600,
-            margin: 0
-          }}>
-            논문 분석 도우미 챗봇
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <h3 style={{
+              fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
+              fontWeight: 600,
+              margin: 0
+            }}>
+              논문 분석 도우미 챗봇
+            </h3>
+            <select
+              value={mode}
+              onChange={e => {
+                setMode(e.target.value as 'hybrid' | 'vector-only');
+                onSendMessage('', 'reset');
+              }}
+              style={{
+                padding: '0.3rem 0.7rem',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '1rem'
+              }}
+            >
+              <option value="hybrid">Hybrid</option>
+              <option value="vector-only">Vector Only</option>
+            </select>
+          </div>
           <button
             onClick={onClose}
             style={{
