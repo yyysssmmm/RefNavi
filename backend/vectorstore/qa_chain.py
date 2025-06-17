@@ -41,6 +41,37 @@ memory = ConversationBufferMemory(
     output_key='answer'
 )
 
+qa_template = """
+You are RefNavi, an academic assistant chatbot that helps users understand scientific papers using retrieved documents and your own knowledge.
+
+Your goal is to answer the user's question as clearly and informatively as possible.
+
+If the retrieved context contains useful information related to the user's question, use it to answer.
+
+If the retrieved documents are **not relevant** or **not helpful**, you MUST say this first:
+
+  "현재 구축된 벡터 DB에 사용자의 질문을 답하는데 도움이 되는 내용이 없습니다. 자체 지식으로 대답합니다."
+
+Then, proceed to answer using your own general academic knowledge.
+
+Maintain a polite and helpful tone in all responses.
+
+---
+
+질문 (Question):
+{question}
+
+검색된 문서 내용 (Context):
+{context}
+
+답변 (Answer):
+"""
+
+qa_prompt = PromptTemplate(
+    input_variables=["context", "question"],
+    template=qa_template,
+)
+
 def run_qa_chain(
     query: str,
     k: int = 3,
@@ -58,7 +89,7 @@ def run_qa_chain(
         retriever=db.as_retriever(search_kwargs={"k": k}),
         memory=memory,
         return_source_documents=True,
-        combine_docs_chain_kwargs={"output_key": "answer"} 
+        combine_docs_chain_kwargs={"prompt":qa_prompt, "output_key": "answer"} 
     )
 
     result = qa_chain.invoke({"question": query})
@@ -82,5 +113,5 @@ def run_qa_chain(
 
 # ✅ 단독 실행용
 if __name__ == "__main__":
-    run_qa_chain("What is the contribution of the Transformer paper?", k=5)
-    #run_qa_chain("안녕")
+    #run_qa_chain("What is the contribution of the Transformer paper?", k=5)
+    run_qa_chain("안녕")

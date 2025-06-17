@@ -5,7 +5,12 @@
   "triples": [
     [
       "Attention Is All You Need",
-      "uses",
+      "is used",
+      "[1] Layer normalization"
+    ],
+    [
+      "Attention Is All You Need",
+      "describes method",
       "[1] Layer normalization"
     ],
     [
@@ -15,17 +20,27 @@
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "motivates",
       "[2] Neural machine translation by jointly learning to align and translate"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "compares or contrasts with",
+      "[2] Neural machine translation by jointly learning to align and translate"
+    ],
+    [
+      "Attention Is All You Need",
+      "provides background",
       "[3] Massive exploration of neural machine translation architectures"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "compares or contrasts with",
+      "[3] Massive exploration of neural machine translation architectures"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
       "[3] Massive exploration of neural machine translation architectures"
     ],
     [
@@ -35,7 +50,17 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[4] Long short-term memory-networks for machine reading"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
+      "[5] Learning phrase representations using rnn encoder-decoder for statistical machine translation"
+    ],
+    [
+      "Attention Is All You Need",
+      "motivates",
       "[5] Learning phrase representations using rnn encoder-decoder for statistical machine translation"
     ],
     [
@@ -45,22 +70,42 @@
     ],
     [
       "Attention Is All You Need",
+      "describes method",
+      "[6] Xception: Deep learning with depthwise separable convolutions"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[7] Empirical evaluation of gated recurrent neural networks on sequence modeling"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "motivates",
+      "[7] Empirical evaluation of gated recurrent neural networks on sequence modeling"
+    ],
+    [
+      "Attention Is All You Need",
+      "compares or contrasts with",
       "[8] Recurrent neural network grammars"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "presents result",
+      "[8] Recurrent neural network grammars"
+    ],
+    [
+      "Attention Is All You Need",
+      "provides background",
       "[9] Convolutional sequence to sequence learning"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "compares or contrasts with",
+      "[9] Convolutional sequence to sequence learning"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
       "[9] Convolutional sequence to sequence learning"
     ],
     [
@@ -70,7 +115,17 @@
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "describes method",
+      "[10] Generating sequences with recurrent neural networks"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
+      "[11] Deep residual learning for image recognition"
+    ],
+    [
+      "Attention Is All You Need",
+      "describes method",
       "[11] Deep residual learning for image recognition"
     ],
     [
@@ -80,12 +135,22 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[12] Gradient flow in recurrent nets: the difficulty of learning long-term dependencies"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[13] Long short-term memory"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "motivates",
+      "[13] Long short-term memory"
+    ],
+    [
+      "Attention Is All You Need",
+      "presents result",
       "[14] Self-training PCFG grammars with latent annotations across languages"
     ],
     [
@@ -95,22 +160,42 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[15] Exploring the limits of language modeling"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[16] Can active memory replace attention?"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
-      "[17] Neural GPUs learn algorithms"
-    ],
-    [
-      "Attention Is All You Need",
-      "compares with",
-      "[18] Neural machine translation in linear time"
+      "motivates",
+      "[16] Can active memory replace attention?"
     ],
     [
       "Attention Is All You Need",
       "provides background",
+      "[17] Neural GPUs learn algorithms"
+    ],
+    [
+      "Attention Is All You Need",
+      "motivates",
+      "[17] Neural GPUs learn algorithms"
+    ],
+    [
+      "Attention Is All You Need",
+      "provides background",
+      "[18] Neural machine translation in linear time"
+    ],
+    [
+      "Attention Is All You Need",
+      "compares or contrasts with",
+      "[18] Neural machine translation in linear time"
+    ],
+    [
+      "Attention Is All You Need",
+      "presents result",
       "[18] Neural machine translation in linear time"
     ],
     [
@@ -120,7 +205,17 @@
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "motivates",
+      "[19] Structured attention networks"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
+      "[20] Adam: A method for stochastic optimization"
+    ],
+    [
+      "Attention Is All You Need",
+      "describes method",
       "[20] Adam: A method for stochastic optimization"
     ],
     [
@@ -130,12 +225,22 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[21] Factorization tricks for LSTM networks"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[22] A structured self-attentive sentence embedding"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "motivates",
+      "[22] A structured self-attentive sentence embedding"
+    ],
+    [
+      "Attention Is All You Need",
+      "presents result",
       "[23] Multi-task sequence to sequence learning"
     ],
     [
@@ -145,12 +250,22 @@
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "motivates",
+      "[24] Effective approaches to attention-based neural machine translation"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
       "[25] Building a large annotated corpus of english: The penn treebank"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "describes method",
+      "[25] Building a large annotated corpus of english: The penn treebank"
+    ],
+    [
+      "Attention Is All You Need",
+      "presents result",
       "[26] Effective self-training for parsing"
     ],
     [
@@ -160,17 +275,37 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[27] A decomposable attention model"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[28] A deep reinforced model for abstractive summarization"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "motivates",
+      "[28] A deep reinforced model for abstractive summarization"
+    ],
+    [
+      "Attention Is All You Need",
+      "presents result",
       "[29] Learning accurate, compact, and interpretable tree annotation"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "compares or contrasts with",
+      "[29] Learning accurate, compact, and interpretable tree annotation"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
+      "[30] Using the output embedding to improve language models"
+    ],
+    [
+      "Attention Is All You Need",
+      "describes method",
       "[30] Using the output embedding to improve language models"
     ],
     [
@@ -180,17 +315,32 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[31] Neural machine translation of rare words with subword units"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[32] Outrageously large neural networks: The sparsely-gated mixture-of-experts layer"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "motivates",
       "[32] Outrageously large neural networks: The sparsely-gated mixture-of-experts layer"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "presents result",
+      "[32] Outrageously large neural networks: The sparsely-gated mixture-of-experts layer"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
+      "[33] Dropout: a simple way to prevent neural networks from overfitting"
+    ],
+    [
+      "Attention Is All You Need",
+      "describes method",
       "[33] Dropout: a simple way to prevent neural networks from overfitting"
     ],
     [
@@ -200,22 +350,42 @@
     ],
     [
       "Attention Is All You Need",
+      "motivates",
+      "[34] End-to-end memory networks"
+    ],
+    [
+      "Attention Is All You Need",
       "provides background",
       "[35] Sequence to sequence learning with neural networks"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "motivates",
+      "[35] Sequence to sequence learning with neural networks"
+    ],
+    [
+      "Attention Is All You Need",
+      "is used",
       "[36] Rethinking the inception architecture for computer vision"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "describes method",
+      "[36] Rethinking the inception architecture for computer vision"
+    ],
+    [
+      "Attention Is All You Need",
+      "provides background",
       "[37] Grammar as a foreign language"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "compares or contrasts with",
+      "[37] Grammar as a foreign language"
+    ],
+    [
+      "Attention Is All You Need",
+      "plans to build upon",
       "[37] Grammar as a foreign language"
     ],
     [
@@ -225,22 +395,27 @@
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "compares or contrasts with",
       "[38] Google’s neural machine translation system: Bridging the gap between human and machine translation"
     ],
     [
       "Attention Is All You Need",
-      "uses",
+      "is used",
       "[38] Google’s neural machine translation system: Bridging the gap between human and machine translation"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "compares or contrasts with",
       "[39] Deep recurrent models with fast-forward connections for neural machine translation"
     ],
     [
       "Attention Is All You Need",
-      "compares with",
+      "presents result",
+      "[39] Deep recurrent models with fast-forward connections for neural machine translation"
+    ],
+    [
+      "Attention Is All You Need",
+      "presents result",
       "[40] Fast and accurate shift-reduce constituent parsing"
     ]
   ],
