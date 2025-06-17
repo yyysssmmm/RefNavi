@@ -1,5 +1,6 @@
 from langchain_community.graphs import Neo4jGraph
 from langchain.chains import GraphCypherQAChain
+from langchain.memory import ConversationBufferMemory
 from langchain_core.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_openai import ChatOpenAI
 import os
@@ -91,29 +92,46 @@ system_prompt_template = SystemMessagePromptTemplate.from_template(system_prompt
 human_prompt_template = HumanMessagePromptTemplate.from_template("{query}")
 chat_prompt = ChatPromptTemplate.from_messages([system_prompt_template, human_prompt_template])
 
-# 2. LLM 세팅
-llm = ChatOpenAI(
-    model="gpt-4",
-    temperature=0
-)
-
-# 3. Graph 연결
+# 2. LLM, Graph, Memory 설정
+llm = ChatOpenAI(model="gpt-4", temperature=0)
 graph = Neo4jGraph(
     url=os.getenv("NEO4J_URI"),
     username=os.getenv("NEO4J_USERNAME"),
     password=os.getenv("NEO4J_PASSWORD")
 )
-
-# 4. Chain 생성
-chain = GraphCypherQAChain.from_llm(
-    llm=llm,
-    graph=graph,
-    cypher_prompt=chat_prompt,  # ✨ 프롬프트 명시적으로 전달
-    verbose=True,
-    return_intermediate_steps=True,
-    allow_dangerous_requests=True
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True,
+    output_key="result"
 )
 
+# 3. GraphCypherQAChain 구성
+graph_chain = GraphCypherQAChain.from_llm(
+    llm=llm,
+    graph=graph,
+    cypher_prompt=chat_prompt,
+    verbose=True,
+    return_intermediate_steps=True,
+    allow_dangerous_requests=True,
+    memory=memory
+)
+
+# ✅ 4. 실행 함수 정의
+def run_graph_rag_qa(query: str) -> dict:
+    """GraphRAG QA + fallback 구조"""
+    try:
+        result = graph_chain.invoke({"query": query})
+        answer = result.get("result", "").strip()
+
+        if not answer:
+            return "현재 구축된 그래프 DB에는 짊문한 내용과 일치하는 결과가 없습니다. 다른질문을 하거나 다른모델 (벡터DB 혹은 하이브리드 방식)을 이용해주세요."
+
+        return answer
+
+    except Exception as e:
+        return "관계기반 질문이 아닙니다. 현재 질문으로 그래프DB 조회를 할 수 없습니다. 다른질문을 하거나 다른모델 (벡터DB 혹은 하이브리드 방식)을 이용해주세요"
+
+    
 # 5. 예시 질의
 if __name__ == "__main__":
     # graphRAG로 답변 가능한 질문 예시 
@@ -122,8 +140,9 @@ if __name__ == "__main__":
     #question = "What are the reference papers explaining attention?"
     #question = "who is the author of layer normalization?"
     #question = "who is the author of LSTM?"
-    # question = "Categorize all the reference types used in transformer paper and answer the numbers by category, the most common one comes first"
+    #question = "Categorize all the reference types used in transformer paper and answer the numbers by category, the most common one comes first"
     question = "Reply all the techniques used in the transformer paper. I want to study those."
+    #question = "hello"
 
     # graphRAG로 답변 불가능한 질문 예시
     #question = "What is the SOTA model before transformer?"
@@ -131,9 +150,9 @@ if __name__ == "__main__":
     #question = "What was the previous best performance model before transformer?"
     #question = "Attention is all you need 논문에서 참조하는 레퍼런스들을, 참조 유형별로 몇개씩 있는지도 각각 알려줄래?"
 
-    result = chain.invoke({"query": question})
+    result = run_graph_rag_qa(question)
 
     print("\n💬 답변:")
     print("-" * 40)
-    print(result["result"])
+    print(result)
     print("-" * 40)
