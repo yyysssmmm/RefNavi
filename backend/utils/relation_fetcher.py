@@ -34,36 +34,196 @@ def classify_all_relations(metadata: Dict) -> List[Dict]:
     cited_block = "\n\n".join(ref_texts)
 
     prompt = f"""
-You are a scientific citation relation classifier.
+        You are a scientific citation relation classifier.
 
-Given the citing paper and a list of references with citation contexts,
-classify the relationship between the citing paper and each reference using one or more of the following labels:
-["uses", "extends", "compares with", "improves upon", "is motivated by", "provides background", "plans to build upon", "cites"]
+        Your task is to classify the relationship between the citing paper and each of its references based on the citation context, citing abstract, and referenced paper's abstract.
 
-If a reference has multiple citation purposes, return all applicable relations.
+        You must select one or more of the following standardized relation labels.  
+        Use **multiple labels if the reference serves multiple purposes**.  
+        Aim to include **3~5 labels per reference**, and ensure **every label** is used across all predictions if possible.
 
-Return a JSON list in this format:
-[
-  {{
-    "ref_number": 1,
-    "ref_title": "Reference Title",
-    "relations": ["uses", "extends"]
-  }},
-  ...
-]
+        ---
 
-CITING PAPER TITLE:
-{title}
+        ### ✅ Relation Labels
 
-CITING ABSTRACT (Original):
-{abstract_orig}
+        1. **provides background**  
+        - Explains basic theory or prior findings.  
+        - Found in: *Introduction, Related Work, Motivation*
 
-CITING ABSTRACT (LLM Summary):
-{abstract_llm}
+        2. **describes method**  
+        - Describes a method used or modified.  
+        - Found in: *Methodology*
 
-CITED REFERENCES:
-{cited_block}
-"""
+        3. **presents result**  
+        - Specific numerical or experimental result.  
+        - Found in: *Results*
+
+        4. **motivates** 
+        - Provides rationale or justification for current work.  
+        - Found in: *Introduction*
+
+        5. **is used**  
+        - A technique, dataset, or tool is directly used.  
+        - Found in: *Motivation, Evaluation, Methodology, Results*
+
+        6. **compares or contrasts with**  
+        - Compared in performance or approach.  
+        - Found in: *Related Work, Results, Discussion*
+
+        7. **extends**  
+        - Builds upon or expands prior work.  
+        - Found in: *Motivation, Methodology*
+
+        8. **plans to build upon**  
+        - Future work plans to extend or adopt it.  
+        - Found in: *Conclusion, Discussion*
+
+        9. **cites**  
+        - Generic citation. Use only if no specific label fits.
+
+        ---
+
+        ### 🧠 INSTRUCTION:
+
+        Return a JSON list in the format:
+        [
+        {{
+            "ref_number": 1,
+            "ref_title": "Reference Title",
+            "relations": ["is used", "extends", "motivates"]
+        }},
+        ...
+        ]
+
+        CITING PAPER TITLE:
+        {title}
+
+        CITING ABSTRACT (Original):
+        {abstract_orig}
+
+        CITING ABSTRACT (LLM Summary):
+        {abstract_llm}
+
+        CITED REFERENCES:
+        {cited_block}
+        
+        ---
+
+        ### 💡 FEW-SHOT EXAMPLES
+
+        Example 1:
+        Citing abstract:  
+        "We build upon GraphSAGE by introducing edge-wise attention and compare to both GAT and GCN baselines."
+
+        Citation contexts:  
+        - "We extend GraphSAGE [5] by replacing mean aggregation with attention-weighted updates."  
+        - "Our method outperforms GCN and GAT in semi-supervised settings."
+
+        Reference abstract:  
+        "[5] GraphSAGE introduces an inductive framework for learning node embeddings using neighborhood sampling."
+
+        Prediction:
+        
+    json
+        {{
+        "ref_number": 5,
+        "ref_title": "GraphSAGE",
+        "relations": ["extends", "describes method", "compares or contrasts with", "motivates"]
+        }}
+
+
+        
+        Example 2:
+        Citation contexts:
+
+        "We adopt the architecture described in [3]."
+
+        "In our experiments, we use their configuration as the baseline."
+
+        "This architecture is popular for its performance."
+
+        Reference abstract:
+        "[3] introduces a deep convolutional encoder-decoder architecture for segmentation tasks."
+
+        Prediction:
+        
+    json
+        {{
+        "ref_number": 3,
+        "ref_title": "CNN Segmentation Architecture",
+        "relations": ["is used", "describes method", "presents result"]
+        }}
+
+
+        
+        Example 3:
+        Citation contexts:
+
+        "The motivation for this study stems from the limitation identified in [9]."
+
+        "We aim to address the scalability issues highlighted there."
+
+        "Future work may integrate their distributed processing scheme."
+
+        Reference abstract:
+        "[9] investigates bottlenecks in distributed training and proposes partial gradient update schemes."
+        
+        Prediction:
+        
+    json
+        {{
+        "ref_number": 9,
+        "ref_title": "Distributed Training Bottlenecks",
+        "relations": ["motivates", "provides background", "plans to build upon"]
+        }}
+
+
+        Example 4:
+        Citation contexts:
+
+        "We use the training schedule of [7] and their learning rate warmup strategy."
+
+        "Our comparison to their final results is shown in Table 2."
+
+        "They benchmarked multiple optimization strategies."
+
+        Reference abstract:
+        "[7] proposes learning rate warm-up for deep networks and presents extensive benchmarks."
+
+        Prediction:
+        
+    json
+        {{
+        "ref_number": 7,
+        "ref_title": "Warmup Schedules",
+        "relations": ["is used", "compares or contrasts with", "presents result"]
+        }}
+
+        
+        Example 5:
+        Citation contexts:
+
+        "Transformer [1] serves as the foundational architecture in our encoder."
+
+        "Their attention mechanism is directly used in our setup."
+
+        "We propose a slight modification and show performance gains."
+
+        "In the future, we plan to extend their cross-attention block."
+
+        Reference abstract:
+        "[1] Introduces the Transformer, based entirely on attention mechanisms."
+
+        Prediction:
+        
+    json
+        {{
+        "ref_number": 1,
+        "ref_title": "Transformer",
+        "relations": ["provides background", "is used", "extends", "plans to build upon"]
+        }}
+
+        """ 
 
     try:
         response = client.chat.completions.create(
