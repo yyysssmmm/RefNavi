@@ -50,6 +50,13 @@ class GraphBuilder:
                 except (ValueError, TypeError):
                     ref_citations = 0
 
+                # citation_contexts를 문자열로 병합
+                ref_citation_contexts_raw = ref_info.get("citation_contexts", [])
+                if isinstance(ref_citation_contexts_raw, list):
+                    ref_citation_contexts = " || ".join(ref_citation_contexts_raw)
+                else:
+                    ref_citation_contexts = str(ref_citation_contexts_raw)
+
                 session.run(f"""
                     MERGE (a:Paper {{title: $src}})
                     SET a.abstract_original = $abstract_orig,
@@ -59,7 +66,8 @@ class GraphBuilder:
                     SET b.ref_abstract = $ref_abstract,
                         b.authors = $ref_authors,
                         b.year = $ref_year,
-                        b.citation_count = $ref_citations
+                        b.citation_count = $ref_citations,
+                        b.citation_contexts = $ref_citation_contexts
 
                     MERGE (a)-[:{rel.replace(" ", "_").upper()}]->(b)
                 """, {
@@ -70,7 +78,8 @@ class GraphBuilder:
                     "ref_abstract": ref_abstract,
                     "ref_authors": ref_authors,
                     "ref_year": ref_year,
-                    "ref_citations": ref_citations
+                    "ref_citations": ref_citations,
+                    "ref_citation_contexts": ref_citation_contexts
                 })
 
 
