@@ -145,8 +145,16 @@ export default function AnalysisPage() {
         console.log('full_text', full_text);
         console.log('ref_title', ref_title);
         const data = await response.json();
-        console.log('data', data);
-        setCitationPurpose(data.purpose);
+        let purpose = "";
+        if (typeof data.body === "string") {
+          // body가 JSON string이면 한 번 더 파싱
+          const bodyObj = JSON.parse(data.body);
+          purpose = bodyObj.purpose;
+        } else if (data.purpose) {
+          // 혹시 바로 purpose가 있으면
+          purpose = data.purpose;
+        }
+        setCitationPurpose(purpose);
       } catch (err: unknown) {
         setPurposeError(err instanceof Error ? err.message : '오류 발생');
       } finally {
