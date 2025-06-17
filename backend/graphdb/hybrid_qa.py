@@ -1,20 +1,23 @@
+# hybrid_qa.py
+
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 
-from vectorstore.qa_chain import run_qa_chain
-from graphdb.graph_qa import chain as graph_chain
-
-import os
-import sys
+import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from vectorstore.qa_chain import run_qa_chain
+from graphdb.graph_qa import run_graph_rag_qa  # ✅ fallback 내장 함수 사용
+
 
 base_dir = os.path.join(os.path.dirname(__file__), "../utils/metadata")
 VECTOR_DB_DIR = os.path.join(base_dir, "chroma_db")
 
 llm = ChatOpenAI(model="gpt-4", temperature=0)
+
 
 # ✅ 벡터 문서 title 요약용 함수
 def format_vector_titles(docs: list[Document]) -> str:
@@ -28,37 +31,20 @@ def format_vector_titles(docs: list[Document]) -> str:
     return result.strip()
 
 
-def safe_graph_invoke(question: str, chat_history=None) -> str:
-    try:
-        if chat_history:
-            history_str = "\n".join([
-                f"Previous Q: {m.content}" if isinstance(m, HumanMessage) else f"Previous A: {m.content}"
-                for m in chat_history
-            ])
-            question = (
-                f"Context from previous conversation:\n{history_str}\n\n"
-                f"Now, based on the above, answer this current question:\n{question}"
-            )
-        result = graph_chain.invoke({"query": question})
-        return result.get("result", "")
-    except Exception as e:
-        print(f"⚠️ Graph QA failed: {e}")
-        return ""
-
-
+# ✅ Hybrid QA 실행 함수
 def hybrid_qa(
     question: str,
     vector_db_dir=VECTOR_DB_DIR,
     k: int = 3,
     return_sources=False,
-    chat_history=None
+    chat_history=[]
 ):
     print(f"\n💬 질문: {question}")
 
     # ✅ 1. Graph QA 실행 (히스토리 반영)
-    graph_answer = safe_graph_invoke(question, chat_history)
+    graph_answer = run_graph_rag_qa(question)
 
-    # ✅ 2. Graph 답변이 유효하지 않으면 Vector QA 실행
+    # ✅ 2. Graph 결과가 없거나 부족할 경우 Vector QA 실행
     if not graph_answer or graph_answer.strip() == "":
         vector_answer, sources = run_qa_chain(
             question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=True
@@ -68,7 +54,7 @@ def hybrid_qa(
         vector_answer, sources = "", []
         vector_docs_summary = ""
 
-    # ✅ 3. System 메시지 프롬프트
+    # ✅ 3. System Prompt 정의
     system_template = SystemMessagePromptTemplate.from_template(
         """You are a helpful assistant. The user may ask in any language, and you must respond in that same language.
 
@@ -83,20 +69,25 @@ def hybrid_qa(
 
     🔍 Source selection rules:
     1. First check the **substance and relevance** of the Graph DB answer:
-    - If the answer from Graph DB contains specific facts that directly and clearly answer the user's question (e.g., citation count, author names, explicit relationships), it can be used.
-    - However, if the Graph DB answer is vague, incomplete, uninformative, or simply reflects a failed query or generic fallback text, it must be ignored — even if it exists.
+    - If the Graph DB answer contains specific facts that directly and clearly answer the user's question (e.g., citation count, author names, explicit relationships), it can be used.
+    - If the answer contains generic fallback text such as:
+    - "현재 구축된 그래프 DB에는 질문한 내용과 일치하는 결과가 없습니다."
+    - "관계기반 질문이 아닙니다."
+    then it must be ignored.
 
-    2. If Graph DB is not informative enough, examine the Vector DB:
-    - Check if the related document titles are **semantically relevant** to the user's question topic.
-    - If they are clearly related, you may use the Vector DB answer to support your response.
-    - If they are weakly or loosely related, ignore the Vector DB as well.
+    2. If Graph DB is not informative, examine the Vector DB answer and its related document titles:
+    - If the answer from Vector DB includes a similar fallback like:
+    - "현재 구축된 벡터 DB에 사용자의 질문을 답하는 데 도움이 되는 내용이 없습니다."
+    then it must also be ignored.
+
+    - If the document titles are clearly related to the topic of the user's question, and the answer provides helpful information, you may use it.
 
     3. If neither source is informative or clearly helpful, answer the question using your own general knowledge and reasoning.
 
     ⚠️ IMPORTANT:
     - You must **not** select an answer source just because it exists.
     - Prioritize **actual usefulness** of the content, not just presence.
-    - For generic or open-ended questions (e.g., "what are prior SOTA models?"), use the source that actually contributes meaningful content.
+    - Be especially strict when you detect known fallback or template-like phrases in the source answers.
 
     ✅ Finish your response with exactly one of:
     - [Answer Source: Vector DB]
@@ -105,7 +96,7 @@ def hybrid_qa(
     """
     )
 
-    # ✅ 4. 이전 대화 히스토리 추가
+    # ✅ 4. 히스토리 반영
     messages = []
     if chat_history:
         messages.extend(chat_history)
@@ -116,7 +107,7 @@ def hybrid_qa(
         ]
     )
 
-    # ✅ 5. LLM 체인 실행
+    # ✅ 5. LLM 실행 체인
     chain = chat_prompt | llm | StrOutputParser()
     response = chain.invoke({
         "question": question,
@@ -125,7 +116,7 @@ def hybrid_qa(
         "graph_answer": graph_answer
     })
 
-    # ✅ 6. 히스토리 갱신
+    # ✅ 6. 히스토리 업데이트
     if chat_history is not None:
         chat_history.append(HumanMessage(content=question))
         chat_history.append(AIMessage(content=response))
@@ -134,3 +125,15 @@ def hybrid_qa(
     print(response)
 
     return (response, sources) if return_sources else (response, [])
+
+
+if __name__ == "__main__":
+    question = "안녕"
+
+    response, _ = hybrid_qa(
+        question=question,
+        k=3,
+        return_sources=False
+        )
+
+    print(response)
