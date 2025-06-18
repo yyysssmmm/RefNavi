@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from vectorstore.qa_chain import run_qa_chain
+from vectorstore.vector_qa import run_qa_chain
 from graphdb.graph_qa import run_graph_rag_qa  # ✅ fallback 내장 함수 사용
 
 
@@ -42,67 +42,46 @@ def hybrid_qa(
     print(f"\n💬 질문: {question}")
 
     # ✅ 1. Graph QA 실행 (히스토리 반영)
-    graph_answer = run_graph_rag_qa(question)
+    graph_answer = run_graph_rag_qa(question, chat_history)
 
-    # ✅ 2. Graph 결과가 없거나 부족할 경우 Vector QA 실행
-    if not graph_answer or graph_answer.strip() == "":
-        vector_answer, sources = run_qa_chain(
-            question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=True
-        )
-        vector_docs_summary = format_vector_titles(sources)
-    else:
-        vector_answer, sources = "", []
-        vector_docs_summary = ""
+    # ✅ 2. Vector QA 실행
+    vector_answer, sources = run_qa_chain(
+        question, k=k, VECTOR_DB_DIR=vector_db_dir, return_sources=True, chat_history=chat_history
+    )
+    vector_docs_summary = format_vector_titles(sources)
 
     # ✅ 3. System Prompt 정의
     system_template = SystemMessagePromptTemplate.from_template(
         """You are a helpful assistant. The user may ask in any language, and you must respond in that same language.
 
-    You are given two optional answers to assist you:
+    You are provided with three sources of information to answer the user's question:
 
-    - Answer A (from Vector DB): {vector_answer}
-    Related document titles extracted from Vector DB (for you to judge their relevance to the user's question): {vector_docs_summary}
+    - 📘 **Vector DB Answer**: {vector_answer}  
+    Document titles retrieved from Vector DB: {vector_docs_summary}
 
-    - Answer B (from Graph DB): {graph_answer}
+    - 🔗 **Graph DB Answer**: {graph_answer}
 
-    Your task is to answer the user's question using the most relevant, informative, and complete source.
+    - 🧠 **Your own general knowledge**
 
-    🔍 Source selection rules:
-    1. First check the **substance and relevance** of the Graph DB answer:
-    - If the Graph DB answer contains specific facts that directly and clearly answer the user's question (e.g., citation count, author names, explicit relationships), it can be used.
-    - If the answer contains generic fallback text such as:
-    - "현재 구축된 그래프 DB에는 질문한 내용과 일치하는 결과가 없습니다."
-    - "관계기반 질문이 아닙니다."
-    then it must be ignored.
+    🎯 Your task is to synthesize a comprehensive, accurate, and helpful response by **integrating all three sources**:
+    1. Use specific facts and insights from **Vector DB and Graph DB** whenever possible — such as citation contexts, abstract content, relationships, or keywords.
+    2. Feel free to supplement with **your own general knowledge or reasoning** to fill in any missing details, clarify vague parts, or connect ideas.
+    3. You must meaningfully incorporate **all three sources**, but you may emphasize the one that contributed most to answering the user's question.
+    - Reflect this emphasis **naturally in the tone or content** of your answer, **not by directly naming the source**.
 
-    2. If Graph DB is not informative, examine the Vector DB answer and its related document titles:
-    - If the answer from Vector DB includes a similar fallback like:
-    - "현재 구축된 벡터 DB에 사용자의 질문을 답하는 데 도움이 되는 내용이 없습니다."
-    then it must also be ignored.
+    💡 Think of yourself as a research assistant combining multiple views to give the best possible explanation — clear, informative, and well-grounded.
 
-    - If the document titles are clearly related to the topic of the user's question, and the answer provides helpful information, you may use it.
-
-    3. If neither source is informative or clearly helpful, answer the question using your own general knowledge and reasoning.
-
-    ⚠️ IMPORTANT:
-    - You must **not** select an answer source just because it exists.
-    - Prioritize **actual usefulness** of the content, not just presence.
-    - Be especially strict when you detect known fallback or template-like phrases in the source answers.
-
-    ✅ Finish your response with exactly one of:
-    - [Answer Source: Vector DB]
-    - [Answer Source: Graph DB]
-    - [Answer Source: Own Knowledge]
+    ⚠️ Never mention the sources explicitly in your answer (e.g., do not say "According to the Graph DB...").
+    ✅ Instead, at the end of your answer, include the following tag indicating which sources were most helpful:
+    [Answer Source: (e.g., Mainly Graph DB + Own Knowledge)]
     """
     )
 
+
     # ✅ 4. 히스토리 반영
-    messages = []
-    if chat_history:
-        messages.extend(chat_history)
 
     chat_prompt = ChatPromptTemplate.from_messages(
-        [system_template] + messages + [
+        [system_template] + chat_history + [
             HumanMessagePromptTemplate.from_template("{question}")
         ]
     )
