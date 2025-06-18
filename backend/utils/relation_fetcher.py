@@ -34,196 +34,220 @@ def classify_all_relations(metadata: Dict) -> List[Dict]:
     cited_block = "\n\n".join(ref_texts)
 
     prompt = f"""
-        You are a scientific citation relation classifier.
+    You are a scientific citation relation classifier.
 
-        Your task is to classify the relationship between the citing paper and each of its references based on the citation context, citing abstract, and referenced paper's abstract.
+    Your task is to classify the relationship between the citing paper and each of its references based on the citation context, the citing abstract, and the referenced paper's abstract.
 
-        You must select one or more of the following standardized relation labels.  
-        Use **multiple labels if the reference serves multiple purposes**.  
-        Aim to include **3~5 labels per reference**, and ensure **every label** is used across all predictions if possible.
+    You must select one or more of the following standardized relation labels.  
+    Use **multiple labels if the reference serves multiple purposes**.  
+    Try to ensure that all available labels are represented at least once in the overall output.  
+    If a relation label is **even weakly implied** or **partially applicable**, you **must include it** in the prediction.  
+    Aim to **extract as many relevant relations as possible** for each reference.
 
-        ---
+    ---
 
-        ### ✅ Relation Labels
+    ### ✅ Relation Labels
 
-        1. **provides background**  
-        - Explains basic theory or prior findings.  
-        - Found in: *Introduction, Related Work, Motivation*
+    1. **has background on**  
+    - Reference paper provides basic theory or prior findings for the citing paper.  
+    - Typically found in: *Introduction, Related Work, Motivation*
 
-        2. **describes method**  
-        - Describes a method used or modified.  
-        - Found in: *Methodology*
+    2. **use method of**  
+    - The citing paper uses or adapts a technique, dataset, or tool from the reference.  
+    - Typically found in: *Methodology, Evaluation, Results*
 
-        3. **presents result**  
-        - Specific numerical or experimental result.  
-        - Found in: *Results*
+    3. **is motivated by**  
+    - The citing paper is inspired or justified by the reference.  
+    - Typically found in: *Introduction*
 
-        4. **motivates** 
-        - Provides rationale or justification for current work.  
-        - Found in: *Introduction*
+    4. **compares or contrasts with**  
+    - The citing paper compares or contrasts its approach or results with the reference.  
+    - Typically found in: *Related Work, Results, Discussion*
 
-        5. **is used**  
-        - A technique, dataset, or tool is directly used.  
-        - Found in: *Motivation, Evaluation, Methodology, Results*
+    5. **extend idea of**  
+    - The citing paper builds upon, generalizes, or adapts the core idea of the reference.  
+    - Typically found in: *Methodology, Conclusion, Discussion*
 
-        6. **compares or contrasts with**  
-        - Compared in performance or approach.  
-        - Found in: *Related Work, Results, Discussion*
+    ---
 
-        7. **extends**  
-        - Builds upon or expands prior work.  
-        - Found in: *Motivation, Methodology*
+    Note: `citation_contexts` describes how the cited paper is referenced and used in the citing paper, and is considered a property of the **cited paper**.
 
-        8. **plans to build upon**  
-        - Future work plans to extend or adopt it.  
-        - Found in: *Conclusion, Discussion*
+    
+    ### 🧠 INSTRUCTION:
 
-        9. **cites**  
-        - Generic citation. Use only if no specific label fits.
-
-        ---
-
-        ### 🧠 INSTRUCTION:
-
-        Return a JSON list in the format:
-        [
-        {{
-            "ref_number": 1,
-            "ref_title": "Reference Title",
-            "relations": ["is used", "extends", "motivates"]
-        }},
-        ...
-        ]
-
-        CITING PAPER TITLE:
-        {title}
-
-        CITING ABSTRACT (Original):
-        {abstract_orig}
-
-        CITING ABSTRACT (LLM Summary):
-        {abstract_llm}
-
-        CITED REFERENCES:
-        {cited_block}
-        
-        ---
-
-        ### 💡 FEW-SHOT EXAMPLES
-
-        Example 1:
-        Citing abstract:  
-        "We build upon GraphSAGE by introducing edge-wise attention and compare to both GAT and GCN baselines."
-
-        Citation contexts:  
-        - "We extend GraphSAGE [5] by replacing mean aggregation with attention-weighted updates."  
-        - "Our method outperforms GCN and GAT in semi-supervised settings."
-
-        Reference abstract:  
-        "[5] GraphSAGE introduces an inductive framework for learning node embeddings using neighborhood sampling."
-
-        Prediction:
-        
-    json
-        {{
-        "ref_number": 5,
-        "ref_title": "GraphSAGE",
-        "relations": ["extends", "describes method", "compares or contrasts with", "motivates"]
-        }}
+    You MUST predict relations for **every single reference** provided in the CITED REFERENCES section.
+    Even if the context is ambiguous or weak, make the **best effort** to assign at least one label.
+    Never skip any reference.
 
 
-        
-        Example 2:
-        Citation contexts:
-
-        "We adopt the architecture described in [3]."
-
-        "In our experiments, we use their configuration as the baseline."
-
-        "This architecture is popular for its performance."
-
-        Reference abstract:
-        "[3] introduces a deep convolutional encoder-decoder architecture for segmentation tasks."
-
-        Prediction:
-        
-    json
-        {{
-        "ref_number": 3,
-        "ref_title": "CNN Segmentation Architecture",
-        "relations": ["is used", "describes method", "presents result"]
-        }}
-
-
-        
-        Example 3:
-        Citation contexts:
-
-        "The motivation for this study stems from the limitation identified in [9]."
-
-        "We aim to address the scalability issues highlighted there."
-
-        "Future work may integrate their distributed processing scheme."
-
-        Reference abstract:
-        "[9] investigates bottlenecks in distributed training and proposes partial gradient update schemes."
-        
-        Prediction:
-        
-    json
-        {{
-        "ref_number": 9,
-        "ref_title": "Distributed Training Bottlenecks",
-        "relations": ["motivates", "provides background", "plans to build upon"]
-        }}
-
-
-        Example 4:
-        Citation contexts:
-
-        "We use the training schedule of [7] and their learning rate warmup strategy."
-
-        "Our comparison to their final results is shown in Table 2."
-
-        "They benchmarked multiple optimization strategies."
-
-        Reference abstract:
-        "[7] proposes learning rate warm-up for deep networks and presents extensive benchmarks."
-
-        Prediction:
-        
-    json
-        {{
-        "ref_number": 7,
-        "ref_title": "Warmup Schedules",
-        "relations": ["is used", "compares or contrasts with", "presents result"]
-        }}
-
-        
-        Example 5:
-        Citation contexts:
-
-        "Transformer [1] serves as the foundational architecture in our encoder."
-
-        "Their attention mechanism is directly used in our setup."
-
-        "We propose a slight modification and show performance gains."
-
-        "In the future, we plan to extend their cross-attention block."
-
-        Reference abstract:
-        "[1] Introduces the Transformer, based entirely on attention mechanisms."
-
-        Prediction:
-        
-    json
-        {{
+    Return a JSON list in the following format:
+    [
+    {{
         "ref_number": 1,
-        "ref_title": "Transformer",
-        "relations": ["provides background", "is used", "extends", "plans to build upon"]
-        }}
+        "ref_title": "Reference Title",
+        "relations": ["use method of", "extend idea of"]
+    }},
+    ...
+    ]
 
-        """ 
+    CITING PAPER TITLE:
+    {title}
+
+    CITING ABSTRACT (Original):
+    {abstract_orig}
+
+    CITING ABSTRACT (LLM Summary):
+    {abstract_llm}
+
+    CITED REFERENCES:
+    {cited_block}
+
+    
+    Return a **complete and valid JSON list**.
+    Do not truncate the output. Do not skip references.
+    Ensure that every reference listed in CITED REFERENCES appears in the output.
+
+    ---
+
+    ### 💡 FEW-SHOT EXAMPLES
+
+    Example 1:
+    Citing abstract:  
+    "We enhance GraphSAGE by adding attention modules and benchmark against GCN and GAT."
+
+    Citation contexts:  
+    - "We extend GraphSAGE [5] using attention-weighted message passing."  
+    - "Compared to GCN and GAT, our model achieves better generalization."
+
+    Reference abstract:  
+    "[5] GraphSAGE introduces an inductive learning framework with neighborhood aggregation."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 5,
+    "ref_title": "GraphSAGE",
+    "relations": ["extend idea of", "use method of", "compares or contrasts with"]
+    }}
+
+    Example 2:
+    Citation contexts:
+
+    "We directly reuse the learning rate schedule of [3] and apply their regularization technique."
+
+    "Our baseline model configuration is based on their implementation."
+
+    Reference abstract:
+    "[3] proposes a training setup with learning rate warm-up and regularization."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 3,
+    "ref_title": "Warmup & Regularization Setup",
+    "relations": ["use method of"]
+    }}
+
+    Example 3:
+    Citation contexts:
+
+    "The idea of addressing imbalance introduced by [7] inspired our formulation."
+
+    "We propose a solution to the issues discussed in their work."
+
+    Reference abstract:
+    "[7] identifies label imbalance issues in object detection and proposes focal loss."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 7,
+    "ref_title": "Focal Loss",
+    "relations": ["is motivated by", "has background on"]
+    }}
+
+    Example 4:
+    Citation contexts:
+
+    "We compare our model against their results shown in [12]."
+
+    "Their architecture serves as our benchmark in all tables."
+
+    Reference abstract:
+    "[12] introduces an attention-based dual encoder network."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 12,
+    "ref_title": "Dual Encoder Network",
+    "relations": ["compares or contrasts with", "use method of"]
+    }}
+
+    Example 5:
+    Citation contexts:
+
+    "We adapt the transformer memory module from [9] and propose a fusion mechanism."
+
+    "Our work builds on their sequence modeling approach."
+
+    Reference abstract:
+    "[9] proposes a memory-based attention model for long sequences."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 9,
+    "ref_title": "Memory Attention Model",
+    "relations": ["extend idea of", "use method of"]
+    }}
+
+    Example 6:
+    Citation contexts:
+
+    "We tackle the same limitations outlined in [8], particularly in the multi-domain setting."
+
+    "Our method addresses the gap left open in their approach."
+
+    Reference abstract:
+    "[8] highlights challenges in adapting models to new domains without supervision."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 8,
+    "ref_title": "Domain Adaptation Challenges",
+    "relations": ["is motivated by", "has background on"]
+    }}
+
+    Example 7:
+    Citation contexts:
+
+    "Unlike [11], we propose a unified module that generalizes their local attention block."
+
+    "We extend their approach by enabling cross-layer interactions."
+
+    Reference abstract:
+    "[11] introduces a local attention mechanism for modeling intra-sentence dependencies."
+
+    Prediction:
+
+    json
+    {{
+    "ref_number": 11,
+    "ref_title": "Local Attention",
+    "relations": ["extend idea of", "use method of"]
+    }}
+
+
+    """
+
 
     try:
         response = client.chat.completions.create(
