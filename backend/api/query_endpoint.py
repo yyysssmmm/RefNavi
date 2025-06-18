@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
-from graphdb.hybrid_qa import hybrid_qa
+from graphdb.hybrid_qa_strict import hybrid_qa
 from vectorstore.qa_chain import run_qa_chain
 
 base_dir = os.path.join(os.path.dirname(__file__), "..")
@@ -43,7 +43,7 @@ def query_endpoint(request: QueryRequest):
                 query=request.query,
                 k=request.top_k,
                 VECTOR_DB_DIR=VECTOR_DB_DIR,
-                return_sources=request.return_sources
+                return_sources=True
             )
         else:  # hybrid (기본)
             answer, source_docs = hybrid_qa(
