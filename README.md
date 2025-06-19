@@ -27,10 +27,10 @@ graph TD
     User -->|PDF Upload| Frontend
     Frontend --> Backend
     Backend -->|Parse| Metadata[Metadata Extraction]
-    Backend -->|Vector Search| VectorDB(ChromaDB)
-    Backend -->|Graph Query| GraphDB(Neo4j Aura)
-    Backend -->|LLM| GPT4 perplexity
-    GPT4 --> Backend
+    Backend -->|Vector Search| VectorDB[ChromaDB]
+    Backend -->|Graph Query| GraphDB[Neo4j Aura]
+    Backend -->|LLM| LLM[GPT-4 & Perplexity]
+    LLM --> Backend
     Backend --> Frontend
     Frontend -->|Chat + Result| User
 ```
