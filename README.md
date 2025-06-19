@@ -34,6 +34,7 @@ graph TD
     Backend --> Frontend
     Frontend -->|Chat + Result| User
 ```
+![Image](https://github.com/user-attachments/assets/e2feaf4e-4aeb-42b1-8cf9-447ef770d68f)
 
 - 📄 PDF Parser: `pdfplumber` + Regex + GPT-4
 - 📦 Metadata Caching: `integrated_metadata.json`
