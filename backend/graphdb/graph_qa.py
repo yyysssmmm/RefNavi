@@ -1,7 +1,10 @@
 from langchain_community.graphs import Neo4jGraph
 from langchain.chains import GraphCypherQAChain
-from langchain_core.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.prompts.chat import (
+    ChatPromptTemplate, 
+    SystemMessagePromptTemplate, 
+    HumanMessagePromptTemplate
+)
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
@@ -84,7 +87,7 @@ Just output the Cypher query directly.
 
 ❌ Bad example:
 MATCH (p:Paper)
-WHERE toLower(p.title) CONTAINS 'transformer'
+WHERE toLower(p.title) ='transformer'
 RETURN p.title
 
 ✅ Good example:
@@ -120,7 +123,7 @@ graph = Neo4jGraph(
 
 
 # ✅ 4. 실행 함수 정의
-def run_graph_rag_qa(query: str, chat_history: list) -> str:
+def run_graph_rag_qa(query: str, chat_history: list = []) -> str:
     """
     chat_history를 반영한 Cypher 프롬프트 생성 + Graph QA 실행
     """
@@ -135,7 +138,7 @@ def run_graph_rag_qa(query: str, chat_history: list) -> str:
             [system_prompt_template] + chat_history + [human_prompt_template]
         )
 
-        # 3. chain 생성
+        # 3. chain 생성 및 실행
         graph_chain = GraphCypherQAChain.from_llm(
             llm=llm,
             graph=graph,
@@ -145,10 +148,9 @@ def run_graph_rag_qa(query: str, chat_history: list) -> str:
             allow_dangerous_requests=True
         )
 
-        # 4. chain 실행
         result = graph_chain.invoke({"query": query})
 
-        # 5. Cypher 결과 확인
+        # 4. Cypher 결과 확인
         intermediate = result.get("intermediate_steps", [])
         context_docs = intermediate[1].get("context", []) if len(intermediate) > 1 else []
 
@@ -167,6 +169,8 @@ def run_graph_rag_qa(query: str, chat_history: list) -> str:
 # 5. 예시 질의
 if __name__ == "__main__":
     # graphRAG로 답변 가능한 질문 예시 
+    #question = "Attention is all you need 논문에서 참조하는 레퍼런스들을, 참조 유형별로 몇개씩 있는지도 각각 알려줄래?"
+    
     #question = "what model does do transformer model compare with?"
     #question = "Who wrote the most cited paper?"
     #question = "What are the reference papers explaining attention?"
@@ -183,7 +187,7 @@ if __name__ == "__main__":
     
     question = "list all previous models before transformer model in historical order"
     #question = "What was the previous best performance model before transformer?"
-    #question = "Attention is all you need 논문에서 참조하는 레퍼런스들을, 참조 유형별로 몇개씩 있는지도 각각 알려줄래?"
+
 
     result = run_graph_rag_qa(question, [])
 

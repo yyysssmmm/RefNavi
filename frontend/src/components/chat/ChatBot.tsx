@@ -132,7 +132,7 @@ export default function ChatBot({ isOpen, onClose, messages, onSendMessage }: Ch
               }}
             >
               <option value="hybrid">Hybrid</option>
-              <option value="vector-only">Vector Only</option>
+              <option value="vector-only">vector-only</option>
             </select>
           </div>
           <button

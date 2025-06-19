@@ -71,41 +71,40 @@ def hybrid_qa(
 
     ---
 
-    🎯 Your task: Choose the **most relevant, informative, and complete** answer source to respond to the user’s question.
+    🎯 Your task: Respond with a **rich, helpful, and logically sound** answer based primarily on your own academic and domain knowledge.  
+    Use the provided answers from the Graph DB and Vector DB to **supplement**, **validate**, or **enhance** your response—but do **not rely on them exclusively**.
 
-    🔍 Source selection rules:
+    ---
 
-    1. **Evaluate the Graph DB answer first**:
-        - Use it **only if** it contains specific factual information that clearly and directly addresses the user’s question.
-        Examples include: citation counts, author names, or explicit citation relationships.
-        - **Do not use it** if it contains generic fallback text such as:
-            - "현재 구축된 그래프 DB에는 질문한 내용과 일치하는 결과가 없습니다."
-            - "관계기반 질문이 아닙니다."
+    💡 Answer generation strategy:
 
-    2. **Then evaluate the Vector DB answer and its context**:
-        - Use it **only if**:
-            - The vector answer is informative and helpful,
-            - AND the related document titles are clearly relevant to the user's question.
-        - **Do not use it** if it contains fallback phrases such as:
-            - "현재 구축된 벡터 DB에 사용자의 질문을 답하는 데 도움이 되는 내용이 없습니다."
-            - "그래프 DB에서 이미 충분한 내용이 검색되었습니다. 벡터DB를 검색하지 않습니다."
+    1. **Start by reasoning independently**:
+    - Use your own internal knowledge to understand the user's intent.
+    - Formulate a core answer that is helpful, specific, and grounded in academic reasoning.
 
-    3. **Fallback to your own knowledge**:
-        - If **neither** source is informative or relevant, answer using your own general academic knowledge and reasoning.
+    2. **Incorporate retrieved DB content where relevant**:
+    - Use Graph DB or Vector DB content to reinforce, illustrate, or provide factual backing for your answer.
+    - If useful, quote or paraphrase their content—but **only when it adds value**.
+
+    3. **Evaluate DB content critically**:
+    - Ignore responses that are generic, irrelevant, or clearly fallback templates.
+    - Do not include misleading or overly vague content from the DB answers.
 
     ---
 
     ⚠️ Important Instructions:
-    - Never choose a source **just because it exists**.
-    - Base your choice on **actual usefulness and content quality**, not mere presence.
-    - Be especially cautious with known fallback or template-like responses.
+    - Your **primary responsibility is to help the user with your own expertise**.
+    - Use the DB results as **supporting tools**, not as mandatory sources.
+    - Avoid copying DB answers verbatim unless they contain unique factual insights.
+    - Ensure your final answer is clear, complete, and instructive, not just a repetition of retrieved content.
 
     ✅ At the end of your answer, append exactly one of the following:
-    - [Answer Source: Graph DB]
-    - [Answer Source: Vector DB]
-    - [Answer Source: Own Knowledge]
+    - [Answer Source: Own Knowledge + Graph DB]
+    - [Answer Source: Own Knowledge + Vector DB]
+    - [Answer Source: Own Knowledge only]
     """
     )
+
 
 
     # ✅ 4. 히스토리 반영
