@@ -1,8 +1,9 @@
 # 🧠 RefNavi: A Smart Academic Paper Reading Assistant
 
 > “One paper, all the context”
-> 한양대학교 25-1 [딥러닝및응용] 수업 프로젝트
-> 데이터사이언스전공 양성민 (yangsp704@hanyang.ac.kr), 황지빈 (hjb7165@hanyang.ac.kr)
+
+### 한양대학교 25-1 [딥러닝및응용] 수업 프로젝트
+데이터사이언스전공 양성민 (yangsp704@hanyang.ac.kr), 황지빈 (hjb7165@hanyang.ac.kr)
 
 RefNavi는 사용자가 업로드한 논문 PDF에서 **reference 정보를 자동 추출하고**, 각 reference 논문의 핵심 메타데이터 및 인용 관계를 분석하여 **LLM 기반 질의응답**을 가능하게 하는 논문 보조 AI 시스템입니다.  
 VectorRAG + GraphRAG을 결합하여 **신뢰도 높은 응답**을 제공합니다.
@@ -28,7 +29,7 @@ graph TD
     Backend -->|Parse| Metadata[Metadata Extraction]
     Backend -->|Vector Search| VectorDB(ChromaDB)
     Backend -->|Graph Query| GraphDB(Neo4j Aura)
-    Backend -->|LLM| GPT4, perplexity
+    Backend -->|LLM| GPT4 perplexity
     GPT4 --> Backend
     Backend --> Frontend
     Frontend -->|Chat + Result| User
